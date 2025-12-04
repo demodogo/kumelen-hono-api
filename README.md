@@ -1,4 +1,3 @@
- 
 # Kümelen — API (Backend Hono)
 
 Versión mejorada y organizada del README para el backend de Kümelen.
@@ -41,17 +40,47 @@ Backend de Kümelen: API REST que centraliza lógica de negocio para el catálog
 - Validación: Zod
 - Almacenamiento de media: Cloudflare R2 
 
+## Librerías y dependencias
+
+Principales dependencias:
+- hono, @hono/node-server
+- zod, @hono/zod-validator
+- pino, pino-pretty
+- @prisma/client, prisma
+- dotenv
+
+Herramientas de desarrollo:
+- typescript, tsx
+- husky, lint-staged
+
+## Arquitectura y estructura
+
+Estructura actual del proyecto:
+
+```
+src/
+  server.ts           # punto de entrada Hono
+  config/             # env, constantes
+  core/               # logger u otros core utils
+  db/                 # prisma client, helpers
+  middleware/         # logging, error handler
+  routes/             # definición de rutas
+prisma/
+  schema.prisma       # modelo de datos
+  generated/          # cliente Prisma (output custom del schema)
+```
+
 ## Requisitos
 
 - Node.js (versión recomendada acorde al proyecto)
-- npm (o npm/yarn)
+- npm
 - PostgreSQL local o en Railway
 
 ## Instalación y ejecución (desarrollo)
 
 1) Clona el repo
 
-```bash
+```powershell
 git clone https://github.com/demodogo/kumelen-api.git
 cd kumelen-api
 ```
@@ -67,30 +96,29 @@ npm install
 4) Genera Prisma Client y aplica migraciones locales (desarrollo)
 
 ```powershell
-npm prisma generate
-npm prisma migrate dev
+npm run prisma:generate
+npm run prisma:migrate
 ```
 
 5) Ejecuta en modo desarrollo
 
 ```powershell
-npm dev
+npm run dev
 ```
-
-Por defecto, la API suele correr en http://localhost:3000 (o el puerto configurado).
 
 ### Scripts recomendados (package.json)
 
-Ejemplo de scripts que deberías tener en `package.json`:
+Estos scripts deben existir en tu `package.json` y coinciden con la configuración actual del proyecto:
 
 ```json
 {
   "scripts": {
-    "dev": "tsx src/app.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/app.js",
+    "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy"
   }
 }
 ```
@@ -109,25 +137,6 @@ R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
 R2_BUCKET_NAME=
 R2_ENDPOINT=
-```
-
-## Estructura del proyecto (sugerida)
-
-Una organización recomendada de carpetas:
-
-```
-src/
-  app.ts              # punto de entrada Hono
-  config/             # env, constantes
-  db/                 # prisma client, helpers
-  modules/
-    auth/             # rutas y lógica de auth
-    users/            # usuarios y roles
-    catalog/          # products, services, categories
-    pos/              # pos sessions, sales, reports
-    cms/              # pages, blocks, media
-  middleware/         # auth, logging, error handler
-  utils/              # utilidades generales
 ```
 
 ## Endpoints relevantes (resumen)
@@ -167,8 +176,8 @@ Configuración típica en Railway:
 
 Build & Start (ejemplo):
 ```
-Build: npm install && npm build
-Start: npm start
+Build: npm install && npm run build
+Start: npm run start
 ```
 
 ## Roadmap / Próximos pasos
@@ -179,3 +188,13 @@ Start: npm start
 - Módulo CMS para páginas y bloques, con almacenamiento en R2.
 - Integraciones futuras: pagos (Webpay), agenda, mejoras en observabilidad.
 
+## Contribuir
+
+- Haz un fork del repositorio y crea una rama para tu aporte.
+- Sigue las convenciones de código del proyecto.
+- Abre un Pull Request describiendo claramente los cambios.
+
+## Licencia y contacto
+
+- Licencia: MIT (o la que definas para el proyecto).
+- Contacto: demodogo (GitHub), email opcional.

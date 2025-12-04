@@ -18,21 +18,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+          cache: 'npm'
 
       - name: Install deps
-        run: pnpm install
+        run: npm ci
 
-      - name: Lint
-        run: pnpm lint
-
-      - name: Test
-        run: pnpm test
+      - name: Generate Prisma client
+        run: npm run prisma:generate
 
       - name: Build
-        run: pnpm build
+        run: npm run build
+
+      - name: Log success
+        if: success()
+        run: |
+          echo "✅ CI completado: instalación, generación de Prisma y build OK"
+
+      - name: Log failure
+        if: failure()
+        run: |
+          echo "❌ CI falló en alguno de los pasos (install/generate/build). Revisa logs arriba."

@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+console.log('ENV keys:', Object.keys(process.env));
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.string().default('8080'),

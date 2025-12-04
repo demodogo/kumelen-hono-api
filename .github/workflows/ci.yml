@@ -23,9 +23,6 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npm run prisma:generate
-
       - name: Build
         run: npm run build
 

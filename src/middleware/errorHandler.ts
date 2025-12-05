@@ -6,7 +6,7 @@ export const errorHandler = (err: Error, c: Context) => {
   if (err instanceof ZodError) {
     return c.json(
       {
-        message: 'Error de validación',
+        message: 'Validation error',
         errors: err.flatten().fieldErrors,
       },
       400
@@ -17,5 +17,5 @@ export const errorHandler = (err: Error, c: Context) => {
   }
   console.error('Unhandled Error:', err);
 
-  return c.json({ message: 'Ocurrió un error interno en el servidor' }, 500);
+  return c.json({ message: 'Internal server error' }, 500);
 };

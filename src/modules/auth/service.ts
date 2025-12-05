@@ -1,10 +1,12 @@
 import { env } from '../../config/env.js';
 import type { User } from '@prisma/client';
-import type { CreateUserInput, LoginUserInput } from './types.js';
-import { authRepository } from './repository.js';
+import type { LoginUserInput } from './types.js';
 import { AuthError } from './errors.js';
-import { comparePassword } from '../../lib/auth.js';
+import { comparePassword, hashPassword } from '../../lib/auth.js';
 import { SignJWT } from 'jose';
+import { usersRepository } from '../users/repository.js';
+import { sanitizeUser } from '../users/helpers.js';
+import { authRepository } from './repository.js';
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
@@ -16,18 +18,8 @@ function buildTokenPayload(user: User) {
   };
 }
 
-export async function registerUser(data: CreateUserInput) {
-  const existing = await authRepository.findByUsername(data.username);
-  if (existing) {
-    throw new AuthError('EMAIL_TAKEN', 'Email already registered', 409);
-  }
-  const user = await authRepository.createUser(data);
-
-  return sanitizeUser(user);
-}
-
 export async function loginUser(data: LoginUserInput) {
-  const user = await authRepository.findByUsername(data.username);
+  const user = await usersRepository.findByUsername(data.username);
   if (!user) {
     throw new AuthError('INVALID_CREDENTIALS', 'Invalid username or password', 401);
   }
@@ -45,7 +37,12 @@ export async function loginUser(data: LoginUserInput) {
   return { token, user: sanitizeUser(user) };
 }
 
-function sanitizeUser(user: User) {
-  const { passwordHash: _passwordHash, ...rest } = user;
-  return rest;
+export async function changePassword(id: string, password: string) {
+  const user = await usersRepository.findById(id);
+  if (!user) {
+    throw new AuthError('NOT_FOUND', 'User not found', 404);
+  }
+  const hashedPassword = await hashPassword(password);
+  await authRepository.changePassword(id, hashedPassword);
+  return { success: true };
 }

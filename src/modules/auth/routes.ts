@@ -1,27 +1,40 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { loginSchema, registerSchema } from './schemas.js';
-import { loginUser, registerUser } from './service.js';
+import { changePasswordSchema, loginSchema } from './schemas.js';
+import { changePassword, loginUser } from './service.js';
+import { AuthError } from './errors.js';
+import { authMiddleware } from '../../middleware/auth.js';
 
 export const authRouter = new Hono();
-
-authRouter.post('/register', zValidator('json', registerSchema), async (c) => {
-  const data = c.req.valid('json');
-
-  try {
-    const user = await registerUser(data);
-    return c.json({ user }, 201);
-  } catch (error) {
-    return c.json({ message: 'Internal server error' }, 500);
-  }
-});
 
 authRouter.post('login', zValidator('json', loginSchema), async (c) => {
   const data = c.req.valid('json');
   try {
     const result = await loginUser(data);
     return c.json({ result }, 200);
-  } catch {
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return c.json({ message: error.message, code: error.code }, error.status as any);
+    }
     return c.json({ message: 'Internal server error' }, 500);
   }
 });
+
+authRouter.patch(
+  'change-password/:id',
+  authMiddleware,
+  zValidator('json', changePasswordSchema),
+  async (c) => {
+    try {
+      const id = c.req.param('id');
+      const data = c.req.valid('json');
+      const result = await changePassword(id, data.password);
+      return c.json({ result }, 200);
+    } catch (error) {
+      if (error instanceof AuthError) {
+        return c.json({ message: error.message, code: error.code }, error.status as any);
+      }
+      return c.json({ message: 'Internal server error' }, 500);
+    }
+  }
+);

@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "prestart": "npm run build",
     "start": "node dist/server.js",
     "prisma:init": "prisma init",

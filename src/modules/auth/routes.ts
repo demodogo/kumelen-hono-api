@@ -7,7 +7,7 @@ import { authMiddleware } from '../../middleware/auth.js';
 
 export const authRouter = new Hono();
 
-authRouter.post('login', zValidator('json', loginSchema), async (c) => {
+authRouter.post('/login', zValidator('json', loginSchema), async (c) => {
   const data = c.req.valid('json');
   try {
     const result = await loginUser(data);
@@ -28,6 +28,10 @@ authRouter.patch(
     try {
       const id = c.req.param('id');
       const data = c.req.valid('json');
+      const authedUser = c.get('user');
+      if (authedUser.sub !== id) {
+        return c.json({ message: 'Forbidden', code: 'FORBIDDEN', status: 403 });
+      }
       const result = await changePassword(id, data.password);
       return c.json({ result }, 200);
     } catch (error) {

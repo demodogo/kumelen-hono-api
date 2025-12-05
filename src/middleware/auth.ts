@@ -1,6 +1,7 @@
 import { jwtVerify } from 'jose';
 import { env } from '../config/env.js';
 import type { Context, Next } from 'hono';
+import type { Role } from '@prisma/client';
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
@@ -16,10 +17,14 @@ export const authMiddleware = async (c: Context, next: Next) => {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
 
+    if (!payload.sub || typeof payload.username !== 'string' || !payload.role) {
+      return c.json({ message: 'Invalid token payload' }, 401);
+    }
+
     c.set('user', {
-      id: payload.sub,
+      sub: payload.sub,
       username: payload.username,
-      role: payload.role,
+      role: payload.role as Role,
     });
 
     await next();

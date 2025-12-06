@@ -5,7 +5,7 @@ import { hasRole } from '../../middleware/role-guard.js';
 import { Role } from '@prisma/client';
 import { authMiddleware } from '../../middleware/auth.js';
 import { createUserSchema, updateUserSchema } from './schemas.js';
-import { AppError } from 'src/shared/errors/app-errors.js';
+import { AppError } from '../../shared/errors/app-errors.js';
 
 export const userRouter = new Hono();
 

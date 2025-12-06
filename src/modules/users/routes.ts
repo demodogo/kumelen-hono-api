@@ -4,8 +4,8 @@ import { createUser, deleteUser, getAll, getById, updateUser } from './service.j
 import { hasRole } from '../../middleware/role-guard.js';
 import { Role } from '@prisma/client';
 import { authMiddleware } from '../../middleware/auth.js';
-import { UserError } from './errors.js';
 import { createUserSchema, updateUserSchema } from './schemas.js';
+import { AppError } from 'src/shared/errors/app-errors.js';
 
 export const userRouter = new Hono();
 
@@ -21,8 +21,8 @@ userRouter.post(
       const user = await createUser(data);
       return c.json({ user }, 201);
     } catch (error) {
-      if (error instanceof UserError) {
-        return c.json({ message: error.message, code: error.code }, error.status as any);
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
       }
       return c.json({ message: 'Internal server error' }, 500);
     }
@@ -34,8 +34,8 @@ userRouter.get('', authMiddleware, hasRole([Role.admin]), async (c) => {
     const users = await getAll();
     return c.json({ users }, 200);
   } catch (error) {
-    if (error instanceof UserError) {
-      return c.json({ message: error.message, code: error.code }, error.status as any);
+    if (error instanceof AppError) {
+      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
     }
     return c.json({ message: 'Internal server error' }, 500);
   }
@@ -47,8 +47,8 @@ userRouter.get('/:id', authMiddleware, hasRole([Role.admin]), async (c) => {
     const user = await getById(id);
     return c.json({ user }, 200);
   } catch (error) {
-    if (error instanceof UserError) {
-      return c.json({ message: error.message, code: error.code }, error.status as any);
+    if (error instanceof AppError) {
+      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
     }
     return c.json({ message: 'Internal server error' }, 500);
   }
@@ -66,8 +66,8 @@ userRouter.patch(
       const user = await updateUser(id, data);
       return c.json({ user }, 200);
     } catch (error) {
-      if (error instanceof UserError) {
-        return c.json({ message: error.message, code: error.code }, error.status as any);
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
       }
       return c.json({ message: 'Internal server error' }, 500);
     }
@@ -80,8 +80,8 @@ userRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c) => {
     const result = await deleteUser(id);
     return c.json({ result }, 200);
   } catch (error) {
-    if (error instanceof UserError) {
-      return c.json({ message: error.message, code: error.code }, error.status as any);
+    if (error instanceof AppError) {
+      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
     }
     return c.json({ message: 'Internal server error' }, 500);
   }

@@ -2,8 +2,8 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { changePasswordSchema, loginSchema } from './schemas.js';
 import { changePassword, loginUser } from './service.js';
-import { AuthError } from './errors.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { AppError } from '../../shared/errors/app-errors.js';
 
 export const authRouter = new Hono();
 
@@ -13,8 +13,8 @@ authRouter.post('/login', zValidator('json', loginSchema), async (c) => {
     const result = await loginUser(data);
     return c.json({ result }, 200);
   } catch (error) {
-    if (error instanceof AuthError) {
-      return c.json({ message: error.message, code: error.code }, error.status as any);
+    if (error instanceof AppError) {
+      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
     }
     return c.json({ message: 'Internal server error' }, 500);
   }
@@ -35,8 +35,8 @@ authRouter.patch(
       const result = await changePassword(id, data.password);
       return c.json({ result }, 200);
     } catch (error) {
-      if (error instanceof AuthError) {
-        return c.json({ message: error.message, code: error.code }, error.status as any);
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
       }
       return c.json({ message: 'Internal server error' }, 500);
     }

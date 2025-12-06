@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { ZodError } from 'zod';
-import { AuthError } from '../modules/auth/errors.js';
+import { AppError } from '../shared/errors/app-errors.js';
 
 export const errorHandler = (err: Error, c: Context) => {
   if (err instanceof ZodError) {
@@ -12,8 +12,8 @@ export const errorHandler = (err: Error, c: Context) => {
       400
     );
   }
-  if (err instanceof AuthError) {
-    return c.json({ message: err.message, code: err.code }, err.status as any);
+  if (err instanceof AppError) {
+    return c.json({ message: err.message, code: err.code }, err.statusCode as any);
   }
   console.error('Unhandled Error:', err);
 

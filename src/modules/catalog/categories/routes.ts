@@ -63,7 +63,7 @@ categoriesRouter.get(
       if (error instanceof AppError) {
         return c.json({ message: error.message, code: error.code }, error.statusCode as any);
       }
-      return c.json({ message: 'Internal server error' });
+      return c.json({ message: 'Internal server error' }, 500);
     }
   }
 );

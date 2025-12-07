@@ -53,18 +53,20 @@ export async function deleteCategory(id: string) {
     throw new NotFoundError('Category');
   }
   if (category.products.length > 0) {
-    category.products.map(async (p) => {
-      return prisma.product.update({
-        where: { id: p.id },
-        data: {
-          category: {
-            connect: {
-              slug: 'default',
+    await Promise.all(
+      category.products.map((p) =>
+        prisma.product.update({
+          where: { id: p.id },
+          data: {
+            category: {
+              connect: {
+                slug: 'default',
+              },
             },
           },
-        },
-      });
-    });
+        })
+      )
+    );
   }
   const deleted = await categoriesRepository.delete(id);
   if (!deleted) {

@@ -6,7 +6,7 @@ import {
   NotFoundError,
 } from '../../../shared/errors/app-errors.js';
 import { prisma } from '../../../db/prisma.js';
-import { appLogsRepository } from '../../logs/repository.js';
+import { appLogsRepository } from '../../app-logs/repository.js';
 import { EntityType, LogAction } from '@prisma/client';
 
 export async function createCategory(authedId: string, data: CreateCategoryInput) {

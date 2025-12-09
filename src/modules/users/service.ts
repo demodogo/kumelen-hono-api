@@ -7,7 +7,7 @@ import {
   InternalServerError,
   NotFoundError,
 } from '../../shared/errors/app-errors.js';
-import { appLogsRepository } from '../logs/repository.js';
+import { appLogsRepository } from '../app-logs/repository.js';
 import { EntityType, LogAction } from '@prisma/client';
 
 export async function createUser(authedId: string, data: CreateUserInput) {

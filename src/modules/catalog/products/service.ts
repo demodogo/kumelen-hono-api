@@ -1,7 +1,7 @@
 import type { CreateProductInput, ProductListQuery, UpdateProductInput } from './types.js';
 import { productsRepository } from './repository.js';
 import { ConflictError, InternalServerError } from '../../../shared/errors/app-errors.js';
-import { appLogsRepository } from '../../logs/repository.js';
+import { appLogsRepository } from '../../app-logs/repository.js';
 import { EntityType, LogAction } from '@prisma/client';
 
 export async function listProducts(query: ProductListQuery) {

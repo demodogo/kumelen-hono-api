@@ -7,7 +7,7 @@ import { usersRepository } from '../users/repository.js';
 import { sanitizeUser } from '../users/helpers.js';
 import { authRepository } from './repository.js';
 import { NotFoundError, UnauthorizedError } from '../../shared/errors/app-errors.js';
-import { appLogsRepository } from '../logs/repository.js';
+import { appLogsRepository } from '../app-logs/repository.js';
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 

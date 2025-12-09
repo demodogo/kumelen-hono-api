@@ -43,7 +43,7 @@ model AppLogs {
   id        String   @id @default(cuid())
   userId    String
   action    String
-  entity    String
+  entity    EntityType
   entityId  String?
   details   String?
   timestamp DateTime @default(now())
@@ -51,6 +51,7 @@ model AppLogs {
   user User @relation(fields: [userId], references: [id])
   @@map("app_logs")
 }
+
 model User {
   id           String   @id @default(cuid())
   username     String   @unique
@@ -136,7 +137,6 @@ model PosSession {
   status SessionStatus
   notes String?
   openedById String
-
 
 
   @@map("pos_sessions")

@@ -7,8 +7,10 @@ import {
   InternalServerError,
   NotFoundError,
 } from '../../shared/errors/app-errors.js';
+import { appLogsRepository } from '../logs/repository.js';
+import { EntityType, LogAction } from '@prisma/client';
 
-export async function createUser(data: CreateUserInput) {
+export async function createUser(authedId: string, data: CreateUserInput) {
   const existing = await usersRepository.findByUsername(data.username);
   if (existing) {
     throw new ConflictError('User');
@@ -19,6 +21,13 @@ export async function createUser(data: CreateUserInput) {
   if (!user) {
     throw new InternalServerError('Could not create user');
   }
+
+  await appLogsRepository.createLog({
+    userId: authedId,
+    action: LogAction.CREATE,
+    entity: EntityType.USER,
+    entityId: user.id,
+  });
 
   return sanitizeUser(user);
 }
@@ -36,7 +45,7 @@ export async function getAll() {
   return users.map(sanitizeUser);
 }
 
-export async function updateUser(id: string, data: UpdateUserInput) {
+export async function updateUser(authedId: string, id: string, data: UpdateUserInput) {
   const user = await usersRepository.findById(id);
   if (!user) {
     throw new NotFoundError('User');
@@ -45,10 +54,16 @@ export async function updateUser(id: string, data: UpdateUserInput) {
   if (!updated) {
     throw new InternalServerError('Could not update user');
   }
+  await appLogsRepository.createLog({
+    userId: authedId,
+    action: LogAction.UPDATE,
+    entity: EntityType.USER,
+    entityId: id,
+  });
   return sanitizeUser(updated);
 }
 
-export async function deleteUser(id: string) {
+export async function deleteUser(authedId: string, id: string) {
   const user = await usersRepository.findById(id);
   if (!user) {
     throw new NotFoundError('User');
@@ -57,5 +72,11 @@ export async function deleteUser(id: string) {
   if (!deleted) {
     throw new InternalServerError('Could not delete user');
   }
+  await appLogsRepository.createLog({
+    userId: authedId,
+    action: LogAction.DELETE,
+    entity: EntityType.USER,
+    entityId: id,
+  });
   return { success: true };
 }

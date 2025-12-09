@@ -1,5 +1,5 @@
 import { env } from '../../config/env.js';
-import type { User } from '@prisma/client';
+import { EntityType, LogAction, type User } from '@prisma/client';
 import type { LoginUserInput } from './types.js';
 import { comparePassword, hashPassword } from '../../lib/auth.js';
 import { SignJWT } from 'jose';
@@ -7,6 +7,7 @@ import { usersRepository } from '../users/repository.js';
 import { sanitizeUser } from '../users/helpers.js';
 import { authRepository } from './repository.js';
 import { NotFoundError, UnauthorizedError } from '../../shared/errors/app-errors.js';
+import { appLogsRepository } from '../logs/repository.js';
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
@@ -34,6 +35,12 @@ export async function loginUser(data: LoginUserInput) {
     .setExpirationTime('24h')
     .sign(JWT_SECRET);
 
+  await appLogsRepository.createLog({
+    userId: user.id,
+    action: LogAction.LOGIN,
+    entity: EntityType.AUTH,
+    entityId: user.id,
+  });
   return { token, user: sanitizeUser(user) };
 }
 
@@ -44,5 +51,12 @@ export async function changePassword(id: string, password: string) {
   }
   const hashedPassword = await hashPassword(password);
   await authRepository.changePassword(id, hashedPassword);
+  appLogsRepository.createLog({
+    userId: user.id,
+    action: LogAction.UPDATE,
+    entity: EntityType.USER,
+    entityId: user.id,
+    details: `Changed password for user ${user.id}`,
+  });
   return { success: true };
 }

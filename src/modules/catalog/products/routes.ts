@@ -28,7 +28,6 @@ productsRouter.post(
       const product = await createProduct(authed.sub, data);
       return c.json({ product }, 201);
     } catch (error) {
-      console.log(error);
       if (error instanceof AppError) {
         return c.json({ message: error.message, code: error.code }, error.statusCode as any);
       }

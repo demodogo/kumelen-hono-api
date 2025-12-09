@@ -16,9 +16,10 @@ userRouter.post(
   zValidator('json', createUserSchema),
   async (c) => {
     const data = c.req.valid('json');
+    const authed = c.get('user');
 
     try {
-      const user = await createUser(data);
+      const user = await createUser(authed.sub, data);
       return c.json({ user }, 201);
     } catch (error) {
       if (error instanceof AppError) {
@@ -62,8 +63,9 @@ userRouter.patch(
   async (c) => {
     try {
       const id = c.req.param('id');
+      const authed = c.get('user');
       const data = c.req.valid('json');
-      const user = await updateUser(id, data);
+      const user = await updateUser(authed.sub, id, data);
       return c.json({ user }, 200);
     } catch (error) {
       if (error instanceof AppError) {
@@ -77,7 +79,8 @@ userRouter.patch(
 userRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c) => {
   try {
     const id = c.req.param('id');
-    const result = await deleteUser(id);
+    const authed = c.get('user');
+    const result = await deleteUser(authed.sub, id);
     return c.json({ result }, 200);
   } catch (error) {
     if (error instanceof AppError) {

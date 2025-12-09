@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { authRouter } from '../modules/auth/routes.js';
 import { userRouter } from '../modules/users/routes.js';
 import { catalogRouter } from '../modules/catalog/routes.js';
+import { logsRouter } from '../modules/logs/route.js';
 
 export const apiRouter = new Hono();
 
@@ -15,3 +16,4 @@ apiRouter.get('/', (c) => {
 apiRouter.route('/auth', authRouter);
 apiRouter.route('/users', userRouter);
 apiRouter.route('/catalog', catalogRouter);
+apiRouter.route('/logs', logsRouter);

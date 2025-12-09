@@ -30,3 +30,15 @@ export type FindManyArgs = {
   skip?: number;
   take?: number;
 };
+
+export type ProductMedia = {
+  id: string;
+  productId: string;
+  mediaId: string;
+  orderIndex: number;
+  media: {
+    id: string;
+    url: string;
+    alt: string | null;
+  };
+};

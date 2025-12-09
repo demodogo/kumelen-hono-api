@@ -80,3 +80,27 @@ export async function deleteService(authedId: string, id: string) {
     action: LogAction.DELETE,
   });
 }
+
+export async function getServiceMedia(serviceId: string) {
+  return servicesRepository.findMediaByServiceId(serviceId);
+}
+
+export async function attachMediaToService(
+  serviceId: string,
+  mediaId: string,
+  orderIndex?: number
+) {
+  return servicesRepository.attachMediaToService({ serviceId, mediaId, orderIndex });
+}
+
+export async function updateServiceMediaOrder(
+  serviceId: string,
+  mediaId: string,
+  orderIndex: number
+) {
+  return servicesRepository.updateServiceMediaOrder({ serviceId, mediaId, orderIndex });
+}
+
+export async function detachServiceMedia(serviceId: string, mediaId: string) {
+  return servicesRepository.detachServiceMedia({ serviceId, mediaId });
+}

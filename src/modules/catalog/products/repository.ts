@@ -1,5 +1,5 @@
 import type { CreateProductInput, FindManyArgs, UpdateProductInput } from './types.js';
-import type { Product } from '@prisma/client';
+import type { Product, ProductMedia } from '@prisma/client';
 import { buildWhere } from './helpers.js';
 import { prisma } from '../../../db/prisma.js';
 import { categoriesRepository } from '../categories/repository.js';
@@ -16,11 +16,27 @@ export const productsRepository = {
         skip,
         take,
         orderBy: { updatedAt: 'desc' },
+        include: {
+          mediaFiles: {
+            include: {
+              media: {
+                select: {
+                  id: true,
+                  url: true,
+                  alt: true,
+                },
+              },
+            },
+          },
+        },
       }),
       prisma.product.count({ where }),
     ]);
-
-    return [items as Product[], total];
+    const itemsWithSortedMedia = items.map((item) => ({
+      ...item,
+      mediaFiles: item.mediaFiles.sort((a, b) => b.orderIndex - a.orderIndex),
+    }));
+    return [itemsWithSortedMedia as Product[], total];
   },
 
   findById(id: string) {
@@ -71,5 +87,63 @@ export const productsRepository = {
 
   delete(id: string) {
     return prisma.product.delete({ where: { id } });
+  },
+
+  async findMediaByProductId(productId: string) {
+    const items = await prisma.productMedia.findMany({
+      where: { productId },
+    });
+    return items as unknown as ProductMedia[];
+  },
+
+  async attachMediaToProduct(args: { productId: string; mediaId: string; orderIndex?: number }) {
+    const { productId, mediaId, orderIndex } = args;
+    let finalIndex = orderIndex;
+    if (finalIndex === undefined) {
+      const last = await prisma.productMedia.findFirst({
+        where: { productId },
+        orderBy: { orderIndex: 'desc' },
+      });
+      finalIndex = last ? last.orderIndex + 1 : 0;
+    }
+    const item = await prisma.productMedia.create({
+      data: {
+        productId,
+        mediaId,
+        orderIndex: finalIndex,
+      },
+      include: { media: true },
+    });
+
+    return item as unknown as ProductMedia;
+  },
+
+  async updateProductMediaOrder(args: { productId: string; mediaId: string; orderIndex: number }) {
+    const { productId, mediaId, orderIndex } = args;
+
+    const item = await prisma.productMedia.update({
+      where: {
+        productId_mediaId: {
+          productId,
+          mediaId,
+        },
+      },
+      data: { orderIndex },
+      include: { media: true },
+    });
+
+    return item as unknown as ProductMedia;
+  },
+
+  async detachProductMedia(args: { productId: string; mediaId: string }) {
+    const { productId, mediaId } = args;
+    await prisma.productMedia.delete({
+      where: {
+        productId_mediaId: {
+          productId,
+          mediaId,
+        },
+      },
+    });
   },
 };

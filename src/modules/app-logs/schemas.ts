@@ -12,6 +12,7 @@ export const createAppLogSchema = z.object({
     'CUSTOMER',
     'POS_SESSION',
     'AUTH',
+    'MEDIA',
   ]),
   entityId: z.string().uuid(),
   details: z.string().optional(),

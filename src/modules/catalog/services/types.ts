@@ -29,3 +29,15 @@ export type FindManyArgs = {
   skip?: number;
   take?: number;
 };
+
+export type ServiceMedia = {
+  id: string;
+  serviceId: string;
+  mediaId: string;
+  orderIndex: number;
+  media: {
+    id: string;
+    url: string;
+    alt: string | null;
+  };
+};

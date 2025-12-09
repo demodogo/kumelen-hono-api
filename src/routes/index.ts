@@ -3,6 +3,7 @@ import { authRouter } from '../modules/auth/routes.js';
 import { userRouter } from '../modules/users/routes.js';
 import { catalogRouter } from '../modules/catalog/routes.js';
 import { logsRouter } from '../modules/app-logs/routes.js';
+import { mediaRouter } from '../modules/media/routes.js';
 
 export const apiRouter = new Hono();
 
@@ -17,3 +18,4 @@ apiRouter.route('/auth', authRouter);
 apiRouter.route('/users', userRouter);
 apiRouter.route('/catalog', catalogRouter);
 apiRouter.route('/logs', logsRouter);
+apiRouter.route('/media', mediaRouter);

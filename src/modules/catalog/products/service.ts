@@ -85,3 +85,23 @@ export async function deleteProduct(authedId: string, id: string): Promise<void>
     action: LogAction.DELETE,
   });
 }
+
+export async function getProductMedia(productId: string) {
+  return productsRepository.findMediaByProductId(productId);
+}
+
+export async function attachProductMedia(productId: string, mediaId: string, orderIndex?: number) {
+  return productsRepository.attachMediaToProduct({ productId, mediaId, orderIndex });
+}
+
+export async function updateProductMediaOrder(
+  productId: string,
+  mediaId: string,
+  orderIndex: number
+) {
+  return productsRepository.updateProductMediaOrder({ productId, mediaId, orderIndex });
+}
+
+export async function detachProductMedia(productId: string, mediaId: string) {
+  return productsRepository.detachProductMedia({ productId, mediaId });
+}

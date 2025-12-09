@@ -3,13 +3,25 @@ import { authMiddleware } from '../../../middleware/auth.js';
 import { hasRole } from '../../../middleware/role-guard.js';
 import { Role } from '@prisma/client';
 import { zValidator } from '@hono/zod-validator';
-import { createServiceSchema, serviceListQuerySchema, updateServiceSchema } from './schema.js';
 import {
+  createServiceSchema,
+  serviceIdParamSchema,
+  serviceListQuerySchema,
+  serviceMediaAttachSchema,
+  serviceMediaParamsSchema,
+  serviceMediaUpdateSchema,
+  updateServiceSchema,
+} from './schema.js';
+import {
+  attachMediaToService,
   createService,
   deleteService,
+  detachServiceMedia,
   getServiceById,
+  getServiceMedia,
   listServices,
   updateService,
+  updateServiceMediaOrder,
 } from './service.js';
 import { AppError } from '../../../shared/errors/app-errors.js';
 
@@ -95,3 +107,77 @@ servicesRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c) =
     return c.json({ message: 'Internal server error' }, 500);
   }
 });
+
+servicesRouter.get('/:id/media', zValidator('param', serviceIdParamSchema), async (c) => {
+  try {
+    const { id } = c.req.valid('param');
+    const items = await getServiceMedia(id);
+    return c.json({ items }, 200);
+  } catch (error) {
+    if (error instanceof AppError) {
+      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
+    }
+    return c.json({ message: 'Internal server error' }, 500);
+  }
+});
+
+servicesRouter.post(
+  '/:id/media',
+  authMiddleware,
+  hasRole([Role.admin, Role.user]),
+  zValidator('param', serviceIdParamSchema),
+  zValidator('json', serviceMediaAttachSchema),
+  async (c) => {
+    try {
+      const { id } = c.req.valid('param');
+      const { mediaId, orderIndex } = c.req.valid('json');
+      const item = await attachMediaToService(id, mediaId, orderIndex);
+      return c.json({ item }, 200);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
+      }
+      return c.json({ message: 'Internal server error' }, 500);
+    }
+  }
+);
+
+servicesRouter.patch(
+  '/:id/media/:mediaId',
+  authMiddleware,
+  hasRole([Role.admin, Role.user]),
+  zValidator('param', serviceMediaParamsSchema),
+  zValidator('json', serviceMediaUpdateSchema),
+  async (c) => {
+    try {
+      const { id, mediaId } = c.req.valid('param');
+      const { orderIndex } = c.req.valid('json');
+      const item = await updateServiceMediaOrder(id, mediaId, orderIndex);
+      return c.json({ item }, 200);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
+      }
+      return c.json({ message: 'Internal server error' }, 500);
+    }
+  }
+);
+
+servicesRouter.delete(
+  '/:id/media/:mediaId',
+  authMiddleware,
+  hasRole([Role.admin, Role.user]),
+  zValidator('param', serviceMediaParamsSchema),
+  async (c) => {
+    try {
+      const { id, mediaId } = c.req.valid('param');
+      await detachServiceMedia(id, mediaId);
+      return c.json({ message: 'OK' }, 200);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
+      }
+      return c.json({ message: 'Internal server error' }, 500);
+    }
+  }
+);

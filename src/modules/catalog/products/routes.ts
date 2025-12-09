@@ -1,14 +1,26 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../../../middleware/auth.js';
 import { zValidator } from '@hono/zod-validator';
-import { createProductSchema, productListQuerySchema, updateProductSchema } from './schemas.js';
 import {
+  createProductSchema,
+  productIdParamSchema,
+  productListQuerySchema,
+  productMediaAttachSchema,
+  productMediaParamsSchema,
+  productMediaUpdateSchema,
+  updateProductSchema,
+} from './schemas.js';
+import {
+  attachProductMedia,
   createProduct,
   deleteProduct,
+  detachProductMedia,
   getProductById,
   getProductBySlug,
+  getProductMedia,
   listProducts,
   updateProduct,
+  updateProductMediaOrder,
 } from './service.js';
 import { AppError } from '../../../shared/errors/app-errors.js';
 import { Role } from '@prisma/client';
@@ -109,3 +121,77 @@ productsRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c) =
     return c.json({ message: 'Internal server error' }, 500);
   }
 });
+
+productsRouter.get('/:id/media', zValidator('param', productIdParamSchema), async (c) => {
+  try {
+    const { id } = c.req.valid('param');
+    const items = await getProductMedia(id);
+    return c.json({ items }, 200);
+  } catch (error) {
+    if (error instanceof AppError) {
+      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
+    }
+    return c.json({ message: 'Internal server error' }, 500);
+  }
+});
+
+productsRouter.post(
+  '/:id/media',
+  authMiddleware,
+  hasRole([Role.admin, Role.user]),
+  zValidator('param', productIdParamSchema),
+  zValidator('json', productMediaAttachSchema),
+  async (c) => {
+    try {
+      const { id } = c.req.valid('param');
+      const { mediaId, orderIndex } = c.req.valid('json');
+      const item = await attachProductMedia(id, mediaId, orderIndex);
+      return c.json({ item }, 201);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
+      }
+      return c.json({ message: 'Internal server error' }, 500);
+    }
+  }
+);
+
+productsRouter.patch(
+  '/:id/media/:mediaId',
+  authMiddleware,
+  hasRole([Role.admin, Role.user]),
+  zValidator('param', productMediaParamsSchema),
+  zValidator('json', productMediaUpdateSchema),
+  async (c) => {
+    try {
+      const { id, mediaId } = c.req.valid('param');
+      const { orderIndex } = c.req.valid('json');
+      const item = await updateProductMediaOrder(id, mediaId, orderIndex);
+      return c.json({ item }, 200);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
+      }
+      return c.json({ message: 'Internal server error' }, 500);
+    }
+  }
+);
+
+productsRouter.delete(
+  '/:id/media/:mediaId',
+  authMiddleware,
+  hasRole([Role.admin, Role.user]),
+  zValidator('param', productMediaParamsSchema),
+  async (c) => {
+    try {
+      const { id, mediaId } = c.req.valid('param');
+      await detachProductMedia(id, mediaId);
+      return c.json({ message: 'OK' }, 200);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
+      }
+      return c.json({ message: 'Internal server error' }, 500);
+    }
+  }
+);

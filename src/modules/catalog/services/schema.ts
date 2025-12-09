@@ -15,6 +15,24 @@ export const createServiceSchema = z.object({
 
 export const updateServiceSchema = createServiceSchema.partial();
 
+export const serviceMediaAttachSchema = z.object({
+  mediaId: z.string(),
+  orderIndex: z.number().int().nonnegative().optional(),
+});
+
+export const serviceMediaUpdateSchema = z.object({
+  orderIndex: z.number().int().nonnegative(),
+});
+
+export const serviceMediaParamsSchema = z.object({
+  id: z.string(),
+  mediaId: z.string(),
+});
+
+export const serviceIdParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
 export const serviceListQuerySchema = z.object({
   search: z.string().optional(),
   categoryId: z.string().uuid().optional(),

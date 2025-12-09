@@ -15,6 +15,24 @@ export const createProductSchema = z.object({
 
 export const updateProductSchema = createProductSchema.partial();
 
+export const productMediaAttachSchema = z.object({
+  mediaId: z.string(),
+  orderIndex: z.number().int().nonnegative().optional(),
+});
+
+export const productMediaUpdateSchema = z.object({
+  orderIndex: z.number().int().nonnegative(),
+});
+
+export const productMediaParamsSchema = z.object({
+  id: z.string(),
+  mediaId: z.string(),
+});
+
+export const productIdParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
 export const productListQuerySchema = z.object({
   search: z.string().optional(),
   categoryId: z.string().uuid().optional(),

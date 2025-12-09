@@ -8,6 +8,7 @@ export const ENTITIES_DICT: Record<string, string> = {
   CATEGORY: 'Categoría',
   AUTH: 'Autenticación',
   BLOG: 'Contenido Web',
+  MEDIA: 'Media',
 };
 
 export const LOG_ACTIONS_DICT: Record<string, string> = {

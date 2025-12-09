@@ -1,13 +1,27 @@
-import type { File } from 'node:buffer';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-export interface StorageClient {
-  uploadFile(file: File, path: string): Promise<string>;
-  deleteFile(path: string): Promise<string>;
-  getSignedUrl(path: string, expiresIn: number): Promise<string>;
-  patchFile(file: File, path: string): Promise<string>;
+export const r2Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+});
+
+export async function createPresignedUrl(key: string, contentType: string) {
+  const command = new PutObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME!,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  return await getSignedUrl(r2Client, command, {
+    expiresIn: 60 * 5,
+  });
 }
-/*
 
-export class R2StorageClient implements StorageClient {
-
-}*/
+export function getPublicUrl(key: string) {
+  return `${process.env.R2_PUBLIC_BASE_URL}/${key}`;
+}

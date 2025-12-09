@@ -1,12 +1,12 @@
 import type { CreateProductInput, FindManyArgs, UpdateProductInput } from './types.js';
-import type { Product, ProductMedia } from '@prisma/client';
+import type { ProductMedia } from '@prisma/client';
 import { buildWhere } from './helpers.js';
 import { prisma } from '../../../db/prisma.js';
 import { categoriesRepository } from '../categories/repository.js';
 import { ConflictError } from '../../../shared/errors/app-errors.js';
 
 export const productsRepository = {
-  async findMany(args: FindManyArgs): Promise<[Product[], number]> {
+  async findMany(args: FindManyArgs) {
     const { search, categoryId, isPublic, skip, take } = args;
     const where = buildWhere({ search, categoryId, isPublic });
 

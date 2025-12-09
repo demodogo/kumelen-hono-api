@@ -1,7 +1,7 @@
 import type { CreateServiceInput, FindManyArgs, UpdateServiceInput } from './types.js';
 import type { Service } from '@prisma/client';
 import { buildWhere } from './helpers.js';
-import { prisma } from 'src/db/prisma.js';
+import { prisma } from '../../../db/prisma.js';
 import { categoriesRepository } from '../categories/repository.js';
 import { ConflictError } from '../../../shared/errors/app-errors.js';
 

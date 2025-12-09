@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { authRouter } from '../modules/auth/routes.js';
 import { userRouter } from '../modules/users/routes.js';
 import { catalogRouter } from '../modules/catalog/routes.js';
-import { logsRouter } from '../modules/logs/route.js';
+import { logsRouter } from '../modules/logs/routes.js';
 
 export const apiRouter = new Hono();
 

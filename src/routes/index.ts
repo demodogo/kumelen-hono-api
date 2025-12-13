@@ -6,6 +6,8 @@ import { catalogRouter } from '../modules/catalog/routes.js';
 import { logsRouter } from '../modules/app-logs/routes.js';
 import { mediaRouter } from '../modules/media/routes.js';
 import { blogPostRouter } from '../modules/blog/routes.js';
+import { therapistsRouter } from '../modules/agenda/therapists/routes.js';
+import { schedulesRouter } from '../modules/agenda/schedules/routes.js';
 
 export const apiPrivateRouter = new Hono().basePath('/private');
 apiPrivateRouter.get('/', (c) => {
@@ -21,6 +23,8 @@ apiPrivateRouter.route('/catalog', catalogRouter);
 apiPrivateRouter.route('/logs', logsRouter);
 apiPrivateRouter.route('/media', mediaRouter);
 apiPrivateRouter.route('/blog', blogPostRouter);
+apiPrivateRouter.route('/therapists', therapistsRouter);
+apiPrivateRouter.route('/schedules', schedulesRouter);
 
 export const apiPublicRouter = new Hono().basePath('/public');
 

@@ -24,7 +24,7 @@ import {
   updateBlogPost,
   updateBlogPostMediaOrder,
 } from './service.js';
-import { AppError } from 'src/shared/errors/app-errors.js';
+import { AppError } from '../../shared/errors/app-errors.js';
 
 export const blogPostRouter = new Hono();
 

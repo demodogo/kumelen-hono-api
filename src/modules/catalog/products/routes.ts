@@ -54,7 +54,6 @@ productsRouter.get('', authMiddleware, zValidator('query', productListQuerySchem
     const products = await listProducts(query);
     return c.json(products, 200);
   } catch (error) {
-    console.log('error:', error);
     if (error instanceof AppError) {
       return c.json({ message: error.message, code: error.code }, error.statusCode as any);
     }
@@ -116,7 +115,6 @@ productsRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c) =
     await deleteProduct(authed.sub, id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    console.log(error);
     if (error instanceof AppError) {
       return c.json({ message: error.message, code: error.code }, error.statusCode as any);
     }

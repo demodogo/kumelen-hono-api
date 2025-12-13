@@ -47,7 +47,6 @@ categoriesRouter.get(
       return c.json(categories, 200);
     } catch (error) {
       if (error instanceof AppError) {
-        console.log(error);
         return c.json({ message: error.message, code: error.code }, error.statusCode as any);
       }
       return c.json({ message: 'Internal server error' }, 500);

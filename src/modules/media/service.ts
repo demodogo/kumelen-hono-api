@@ -12,7 +12,6 @@ export async function presignUpload(input: PresignMediaInput) {
   const key = ext ? `${folder}/${randomName}.${ext}` : `${folder}/${randomName}`;
   const uploadUrl = await createPresignedUrl(key, input.contentType);
   const publicUrl = getPublicUrl(key);
-  console.log('KEY:', key, 'UPLOADURL: ', uploadUrl, 'PUBLICURL:', publicUrl);
   return {
     key,
     uploadUrl,

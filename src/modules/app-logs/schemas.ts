@@ -13,6 +13,7 @@ export const createAppLogSchema = z.object({
     'POS_SESSION',
     'AUTH',
     'MEDIA',
+    'BLOG',
   ]),
   entityId: z.string(),
   details: z.string().optional(),

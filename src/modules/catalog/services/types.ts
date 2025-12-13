@@ -16,7 +16,7 @@ export type Service = {
   cost: number;
   isActive: boolean;
   isPublished: boolean;
-  durationMinutes: number;
+  durationMin: number;
   created_at: Date;
   updated_at: Date;
 };

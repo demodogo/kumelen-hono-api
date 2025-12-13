@@ -40,10 +40,7 @@ export async function getById(
 }
 
 export async function getAll(includeOptions?: { services: boolean; products: boolean }) {
-  const categories = await categoriesRepository.findAll(includeOptions);
-  console.log(categories);
-
-  return categories;
+  return categoriesRepository.findAll(includeOptions);
 }
 
 export async function updateCategory(authedId: string, id: string, data: UpdateCategoryInput) {

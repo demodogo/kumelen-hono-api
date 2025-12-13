@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from 'src/middleware/auth.js';
+import { authMiddleware } from '../../middleware/auth.js';
 import { hasRole } from '../../middleware/role-guard.js';
 import { Role } from '@prisma/client';
 import { zValidator } from '@hono/zod-validator';

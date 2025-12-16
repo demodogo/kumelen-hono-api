@@ -72,6 +72,7 @@ model User {
   appLogs       AppLogs[]
   blogPosts     BlogPost[]
   therapists Therapist[]
+  patientRecords PatientRecord[]
 
   @@map("users")
 }
@@ -183,10 +184,12 @@ model Customer {
   lastName  String?
   email     String?  @unique
   phone     String?  @unique
+  rut       String?  @unique
   points    Int      @default(0)
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
 
   sales Sale[]
   appointments Appointment[]
@@ -316,7 +319,6 @@ model Therapist {
 
   appointments Appointment[]
 
-  patientRecords PatientRecord[]
 
   @@map("therapists")
 }
@@ -372,7 +374,6 @@ model Appointment {
   appointmentDate DateTime
   durationMinutes Int
   status          AppointmentStatus @default(PENDING)
-  notes           String?
   reminderSent    Boolean           @default(false)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -380,7 +381,7 @@ model Appointment {
   customer       Customer       @relation(fields: [customerId], references: [id])
   therapist      Therapist?     @relation(fields: [therapistId], references: [id])
   service        Service        @relation(fields: [serviceId], references: [id])
-  patientRecord  PatientRecord?
+  sessionNotes   SessionNote[]
 
   @@index([therapistId, appointmentDate])
   @@index([customerId])
@@ -389,8 +390,7 @@ model Appointment {
 
 model PatientRecord {
   id              String   @id @default(cuid())
-  appointmentId   String   @unique
-  customerId      String
+  customerId      String @unique
   generalNotes    String?
   medicalHistory  String?
   allergies       String?
@@ -399,10 +399,8 @@ model PatientRecord {
   updatedAt       DateTime @updatedAt
   updatedById     String
 
-  appointment    Appointment   @relation(fields: [appointmentId], references: [id])
-  therapist      Therapist     @relation(fields: [updatedById], references: [id])
-  customer       Customer      @relation(fields: [customerId], references: [id])
-  sessionNotes   SessionNote[]
+  updatedBy      User     @relation(fields: [updatedById], references: [id])
+  customer       Customer @relation(fields: [customerId], references: [id])
 
   @@index([customerId])
   @@index([updatedById])
@@ -411,16 +409,15 @@ model PatientRecord {
 
 model SessionNote {
   id              String   @id @default(cuid())
-  patientRecordId String
-  sessionDate     DateTime
+  appointmentId   String
   notes           String
   observations    String?
   nextSteps       String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  patientRecord PatientRecord @relation(fields: [patientRecordId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
-  @@index([patientRecordId])
+  @@index([appointmentId])
   @@map("session_notes")
 }

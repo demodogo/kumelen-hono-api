@@ -2,10 +2,10 @@ import { Hono } from 'hono';
 import { authRouter } from '../modules/auth/routes.js';
 import { authPublicRouter } from '../modules/auth/public-routes.js';
 import { userRouter } from '../modules/users/routes.js';
-import { catalogRouter } from '../modules/catalog/routes.js';
+import { catalogPublicRouter, catalogRouter } from '../modules/catalog/routes.js';
 import { logsRouter } from '../modules/app-logs/routes.js';
 import { mediaRouter } from '../modules/media/routes.js';
-import { blogPostRouter } from '../modules/blog/routes.js';
+import { blogPostPublicRouter, blogPostRouter } from '../modules/blog/routes.js';
 import { therapistsRouter } from '../modules/agenda/therapists/routes.js';
 import { schedulesRouter } from '../modules/agenda/schedules/routes.js';
 import { appointmentsRouter } from '../modules/agenda/appointments/routes.js';
@@ -37,3 +37,5 @@ apiPrivateRouter.route('/session-notes', sessionNotesRouter);
 export const apiPublicRouter = new Hono().basePath('/public');
 
 apiPublicRouter.route('/auth', authPublicRouter);
+apiPublicRouter.route('/catalog', catalogPublicRouter);
+apiPublicRouter.route('/blog', blogPostPublicRouter);

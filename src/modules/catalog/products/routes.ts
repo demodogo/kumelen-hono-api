@@ -64,7 +64,7 @@ productsRouter.get('', authMiddleware, zValidator('query', productListQuerySchem
 productsRouter.get('/:id', authMiddleware, async (c) => {
   try {
     const id = c.req.param('id');
-    const product = await getProductById(id);
+    const product = await getProductById(false, id);
     return c.json(product, 200);
   } catch (error) {
     if (error instanceof AppError) {

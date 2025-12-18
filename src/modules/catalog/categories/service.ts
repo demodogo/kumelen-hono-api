@@ -30,21 +30,22 @@ export async function createCategory(authedId: string, data: CreateCategoryInput
 
 export async function getById(
   id: string,
-  includeOptions?: { services: boolean; products: boolean }
+  published: boolean = false,
+  includeOptions?: { products: boolean }
 ) {
-  const category = await categoriesRepository.findById(id, includeOptions);
+  const category = await categoriesRepository.findById(id, published, includeOptions);
   if (!category) {
     throw new NotFoundError('Category');
   }
   return category;
 }
 
-export async function getAll(includeOptions?: { services: boolean; products: boolean }) {
-  return categoriesRepository.findAll(includeOptions);
+export async function getAll(published: boolean = false, includeOptions?: { products: boolean }) {
+  return categoriesRepository.findAll(published, includeOptions);
 }
 
 export async function updateCategory(authedId: string, id: string, data: UpdateCategoryInput) {
-  const category = await categoriesRepository.findById(id);
+  const category = await categoriesRepository.findById(id, false);
   if (!category) {
     throw new NotFoundError('Category');
   }
@@ -76,7 +77,7 @@ export async function updateCategory(authedId: string, id: string, data: UpdateC
 }
 
 export async function deleteCategory(authedId: string, id: string) {
-  const category = await categoriesRepository.findById(id, { products: true });
+  const category = await categoriesRepository.findById(id, false, { products: true });
   if (!category) {
     throw new NotFoundError('Category');
   }

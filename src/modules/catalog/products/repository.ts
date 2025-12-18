@@ -1,5 +1,5 @@
 import type { CreateProductInput, FindManyArgs, UpdateProductInput } from './types.js';
-import type { Prisma, ProductMedia } from '@prisma/client';
+import type { ProductMedia } from '@prisma/client';
 import { buildWhere } from './helpers.js';
 import { prisma } from '../../../db/prisma.js';
 import { categoriesRepository } from '../categories/repository.js';
@@ -43,14 +43,30 @@ export const productsRepository = {
     }));
   },
 
-  findById(id: string) {
-    return prisma.product.findUnique({ where: { id } });
+  findById(published: boolean = false, id: string) {
+    const where = {
+      id,
+      ...(published && { isPublished: true }),
+    };
+
+    const include = {
+      category: published,
+      mediaFiles: published
+        ? {
+            include: {
+              media: true,
+            },
+          }
+        : false,
+    };
+
+    return prisma.product.findUnique({ where, include });
   },
 
   async create(data: CreateProductInput) {
     let category;
     if (data.categoryId) {
-      category = await categoriesRepository.findById(data.categoryId);
+      category = await categoriesRepository.findById(data.categoryId, false);
     } else {
       category = await categoriesRepository.findBySlug('default');
     }
@@ -94,11 +110,10 @@ export const productsRepository = {
   },
 
   async findMediaByProductId(productId: string) {
-    const items = await prisma.productMedia.findMany({
+    return prisma.productMedia.findMany({
       where: { productId },
       include: { media: true },
     });
-    return items;
   },
 
   async attachMediaToProduct(args: { productId: string; mediaId: string; orderIndex?: number }) {

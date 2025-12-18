@@ -28,20 +28,48 @@ export const categoriesRepository = {
     });
   },
 
-  findAll(includeOptions?: { products: boolean }) {
+  findAll(published?: boolean, includeOptions?: { products: boolean }) {
     return prisma.category.findMany({
       include: {
-        products: includeOptions?.products ?? false,
+        products: includeOptions?.products
+          ? {
+              where: {
+                isPublished: true,
+              },
+              include: {
+                mediaFiles: {
+                  include: {
+                    media: true,
+                  },
+                },
+              },
+            }
+          : false,
       },
       orderBy: { updatedAt: 'asc' },
     });
   },
 
-  findById(id: string, includeOptions?: { products: boolean }) {
+  findById(id: string, published?: boolean, includeOptions?: { products: boolean }) {
     return prisma.category.findUnique({
       where: { id },
       include: {
-        products: includeOptions?.products ?? false,
+        products: includeOptions?.products
+          ? published
+            ? {
+                where: {
+                  isPublished: true,
+                },
+                include: {
+                  mediaFiles: {
+                    include: {
+                      media: true,
+                    },
+                  },
+                },
+              }
+            : true
+          : false,
       },
     });
   },

@@ -201,3 +201,29 @@ blogPostRouter.delete(
     }
   }
 );
+
+export const blogPostPublicRouter = new Hono();
+
+blogPostPublicRouter.get('', zValidator('query', blogPostListQuerySchema), async (c) => {
+  try {
+    const query = c.req.valid('query');
+    const blogPosts = await listBlogPosts(query);
+    const publishedPosts = blogPosts.filter((post) => post.isPublished);
+    return c.json(publishedPosts, 200);
+  } catch (error) {
+    return c.json({ message: 'Internal server error' }, 500);
+  }
+});
+
+blogPostPublicRouter.get('/:slug', async (c) => {
+  try {
+    const slug = c.req.param('slug');
+    const blogPost = await getBlogPostBySlug(slug);
+    if (blogPost && blogPost.isPublished) {
+      return c.json(blogPost, 200);
+    }
+    return c.json({ message: 'Not found' }, 404);
+  } catch (error) {
+    return c.json({ message: 'Internal server error' }, 500);
+  }
+});

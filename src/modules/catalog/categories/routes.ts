@@ -40,10 +40,9 @@ categoriesRouter.get(
       const { include } = c.req.valid('query');
 
       const includeOptions = {
-        services: include === 'services' || include === 'all',
         products: include === 'products' || include === 'all',
       };
-      const categories = await getAll(includeOptions);
+      const categories = await getAll(false, includeOptions);
       return c.json(categories, 200);
     } catch (error) {
       if (error instanceof AppError) {
@@ -64,10 +63,9 @@ categoriesRouter.get(
       const { include } = c.req.valid('query');
 
       const includeOptions = {
-        services: include === 'services' || include === 'all',
         products: include === 'products' || include === 'all',
       };
-      const category = await getById(id, includeOptions);
+      const category = await getById(id, false, includeOptions);
       return c.json(category, 200);
     } catch (error) {
       if (error instanceof AppError) {

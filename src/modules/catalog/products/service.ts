@@ -25,8 +25,8 @@ export async function listProducts(query: ProductListQuery) {
   });
 }
 
-export async function getProductById(id: string) {
-  return productsRepository.findById(id);
+export async function getProductById(isPublished: boolean = false, id: string) {
+  return productsRepository.findById(isPublished, id);
 }
 
 export async function getProductBySlug(slug: string) {
@@ -67,7 +67,7 @@ export async function updateProduct(authedId: string, id: string, data: UpdatePr
 }
 
 export async function deleteProduct(authedId: string, id: string): Promise<void> {
-  const product = await productsRepository.findById(id);
+  const product = await productsRepository.findById(false, id);
   if (!product) {
     throw new NotFoundError('Producto');
   }

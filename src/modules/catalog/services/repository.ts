@@ -1,5 +1,5 @@
 import type { CreateServiceInput, FindManyArgs, UpdateServiceInput } from './types.js';
-import type { Prisma, ServiceMedia } from '@prisma/client';
+import type { ServiceMedia } from '@prisma/client';
 import { buildWhere } from './helpers.js';
 import { prisma } from '../../../db/prisma.js';
 
@@ -34,7 +34,22 @@ export const servicesRepository = {
   },
 
   findById(id: string) {
-    return prisma.service.findUnique({ where: { id } });
+    return prisma.service.findUnique({
+      where: { id },
+      include: {
+        mediaFiles: {
+          include: {
+            media: {
+              select: {
+                id: true,
+                url: true,
+                alt: true,
+              },
+            },
+          },
+        },
+      },
+    });
   },
 
   async create(data: CreateServiceInput) {
@@ -79,11 +94,10 @@ export const servicesRepository = {
   },
 
   async findMediaByServiceId(serviceId: string) {
-    const items = await prisma.serviceMedia.findMany({
+    return prisma.serviceMedia.findMany({
       where: { serviceId },
       include: { media: true },
     });
-    return items;
   },
 
   async attachMediaToService(args: { serviceId: string; mediaId: string; orderIndex?: number }) {

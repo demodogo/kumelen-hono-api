@@ -4,15 +4,27 @@ import { buildWhere } from './helpers.js';
 import { prisma } from '../../../db/prisma.js';
 
 export const servicesRepository = {
-  async findMany(args: FindManyArgs) {
-    const { search, isPublic, skip, take } = args;
+  async findMany(args: FindManyArgs & { includePrivateFields?: boolean }) {
+    const { search, isPublic, skip, take, includePrivateFields = true } = args;
     const where = buildWhere({ search, isPublic });
     const items = await prisma.service.findMany({
       where: { ...where, isActive: true },
       skip,
       take,
       orderBy: { updatedAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        shortDesc: true,
+        longDesc: true,
+        price: true,
+        cost: includePrivateFields,
+        durationMinutes: true,
+        isPublished: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
         mediaFiles: {
           include: {
             media: {
@@ -33,10 +45,22 @@ export const servicesRepository = {
     }));
   },
 
-  findById(id: string) {
+  findById(id: string, includePrivateFields: boolean = true) {
     return prisma.service.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        shortDesc: true,
+        longDesc: true,
+        price: true,
+        cost: includePrivateFields,
+        durationMinutes: true,
+        isPublished: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
         mediaFiles: {
           include: {
             media: {

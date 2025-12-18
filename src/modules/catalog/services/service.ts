@@ -15,11 +15,12 @@ export async function listServices(query: ServiceListQuery) {
     isPublic,
     skip,
     take,
+    includePrivateFields: !isPublic,
   });
 }
 
-export async function getServiceById(id: string) {
-  return servicesRepository.findById(id);
+export async function getServiceById(id: string, includePrivateFields: boolean = true) {
+  return servicesRepository.findById(id, includePrivateFields);
 }
 
 export async function createService(authedId: string, data: CreateServiceInput) {

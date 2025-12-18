@@ -6,8 +6,8 @@ import { categoriesRepository } from '../categories/repository.js';
 import { ConflictError } from '../../../shared/errors/app-errors.js';
 
 export const productsRepository = {
-  async findMany(args: FindManyArgs) {
-    const { search, categoryId, isPublic, skip, take } = args;
+  async findMany(args: FindManyArgs & { includePrivateFields?: boolean }) {
+    const { search, categoryId, isPublic, skip, take, includePrivateFields = true } = args;
     const where = buildWhere({ search, categoryId, isPublic });
 
     const items = await prisma.product.findMany({
@@ -15,7 +15,21 @@ export const productsRepository = {
       skip,
       take,
       orderBy: { updatedAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        sku: true,
+        shortDesc: true,
+        longDesc: true,
+        price: true,
+        cost: includePrivateFields,
+        stock: true,
+        minStock: true,
+        isPublished: true,
+        categoryId: true,
+        createdAt: true,
+        updatedAt: true,
         category: {
           select: {
             id: true,
@@ -43,24 +57,47 @@ export const productsRepository = {
     }));
   },
 
-  findById(published: boolean = false, id: string) {
+  findById(published: boolean = false, id: string, includePrivateFields: boolean = true) {
     const where = {
       id,
       ...(published && { isPublished: true }),
     };
 
-    const include = {
-      category: published,
-      mediaFiles: published
-        ? {
-            include: {
-              media: true,
-            },
-          }
-        : false,
-    };
-
-    return prisma.product.findUnique({ where, include });
+    return prisma.product.findUnique({
+      where,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        sku: true,
+        shortDesc: true,
+        longDesc: true,
+        price: true,
+        cost: includePrivateFields,
+        stock: true,
+        minStock: true,
+        isPublished: true,
+        categoryId: true,
+        createdAt: true,
+        updatedAt: true,
+        category: published
+          ? {
+              select: {
+                id: true,
+                slug: true,
+                name: true,
+              },
+            }
+          : false,
+        mediaFiles: published
+          ? {
+              include: {
+                media: true,
+              },
+            }
+          : false,
+      },
+    });
   },
 
   async create(data: CreateProductInput) {

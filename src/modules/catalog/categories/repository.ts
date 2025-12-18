@@ -36,7 +36,20 @@ export const categoriesRepository = {
               where: {
                 isPublished: true,
               },
-              include: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                sku: true,
+                shortDesc: true,
+                longDesc: true,
+                price: true,
+                stock: true,
+                minStock: true,
+                isPublished: true,
+                categoryId: true,
+                createdAt: true,
+                updatedAt: true,
                 mediaFiles: {
                   include: {
                     media: true,
@@ -60,7 +73,20 @@ export const categoriesRepository = {
                 where: {
                   isPublished: true,
                 },
-                include: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  sku: true,
+                  shortDesc: true,
+                  longDesc: true,
+                  price: true,
+                  stock: true,
+                  minStock: true,
+                  isPublished: true,
+                  categoryId: true,
+                  createdAt: true,
+                  updatedAt: true,
                   mediaFiles: {
                     include: {
                       media: true,

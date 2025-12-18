@@ -57,7 +57,7 @@ catalogPublicRouter.get('/services', zValidator('query', serviceListQuerySchema)
 
 catalogPublicRouter.get('/services/:id', async (c) => {
   const id = c.req.param('id');
-  const service = await getServiceById(id);
+  const service = await getServiceById(id, false);
   if (service && service.isPublished) {
     return c.json(service, 200);
   }

@@ -1,6 +1,5 @@
 import { buildWhere } from './helpers.js';
 import { prisma } from '../../db/prisma.js';
-import type { Prisma } from '@prisma/client';
 import type {
   BlogPostMedia,
   CreateBlogPostInput,
@@ -40,7 +39,22 @@ export const blogRepository = {
   },
 
   findById(id: string) {
-    return prisma.blogPost.findUnique({ where: { id } });
+    return prisma.blogPost.findUnique({
+      where: { id },
+      include: {
+        mediaFiles: {
+          include: {
+            media: {
+              select: {
+                id: true,
+                url: true,
+                alt: true,
+              },
+            },
+          },
+        },
+      },
+    });
   },
 
   async create(authedId: string, data: CreateBlogPostInput) {
@@ -53,7 +67,22 @@ export const blogRepository = {
   },
 
   findBySlug(slug: string) {
-    return prisma.blogPost.findUnique({ where: { slug } });
+    return prisma.blogPost.findUnique({
+      where: { slug },
+      include: {
+        mediaFiles: {
+          include: {
+            media: {
+              select: {
+                id: true,
+                url: true,
+                alt: true,
+              },
+            },
+          },
+        },
+      },
+    });
   },
 
   findByTitle(title: string) {
@@ -69,6 +98,7 @@ export const blogRepository = {
         ...(data.content !== undefined && { content: data.content }),
         ...(data.excerpt !== undefined && { excerpt: data.excerpt }),
         ...(data.tags !== undefined && { tags: data.tags }),
+        ...(data.isPublished !== undefined && { isPublished: data.isPublished }),
       },
     });
   },

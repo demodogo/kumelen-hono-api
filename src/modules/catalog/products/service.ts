@@ -22,11 +22,12 @@ export async function listProducts(query: ProductListQuery) {
     isPublic,
     skip,
     take,
+    includePrivateFields: !isPublic,
   });
 }
 
 export async function getProductById(isPublished: boolean = false, id: string) {
-  return productsRepository.findById(isPublished, id);
+  return productsRepository.findById(isPublished, id, !isPublished);
 }
 
 export async function getProductBySlug(slug: string) {

@@ -9,6 +9,7 @@ export const createBlogPostSchema = z.object({
   }),
   excerpt: z.string().optional(),
   tags: z.string().array().optional(),
+  isPublished: z.boolean().default(false),
 });
 
 export const updateBlogPostSchema = createBlogPostSchema.partial();

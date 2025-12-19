@@ -85,19 +85,47 @@ export const therapistsRepository = {
     data: Omit<UpdateTherapistInput, 'serviceIds' | 'email' | 'phone'> & {
       email?: string | null;
       phone?: string | null;
-    }
+    },
+    serviceIds?: string[]
   ) {
-    return prisma.therapist.update({
-      where: { id },
-      data,
-      include: {
-        services: {
-          include: {
-            service: true,
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.therapist.update({
+        where: { id },
+        data,
+      });
+
+      if (serviceIds !== undefined) {
+        await tx.therapistService.deleteMany({ where: { therapistId: id } });
+
+        if (serviceIds.length > 0) {
+          await tx.therapistService.createMany({
+            data: serviceIds.map((serviceId) => ({
+              therapistId: id,
+              serviceId,
+            })),
+          });
+        }
+      }
+
+      return tx.therapist.findUnique({
+        where: { id },
+        include: {
+          services: {
+            include: {
+              service: true,
+            },
+          },
+          schedule: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              name: true,
+              lastName: true,
+            },
           },
         },
-        schedule: true,
-      },
+      });
     });
   },
 

@@ -68,13 +68,9 @@ export async function updateTherapist(authedId: string, id: string, data: Update
     phone: therapistData.phone === undefined ? null : therapistData.phone,
   };
 
-  const updated = await therapistsRepository.update(id, updateData);
+  const updated = await therapistsRepository.update(id, updateData, serviceIds);
   if (!updated) {
     throw new InternalServerError('Failed to update therapist.');
-  }
-
-  if (serviceIds !== undefined) {
-    await therapistsRepository.assignServices(id, serviceIds);
   }
 
   await appLogsRepository.createLog({
@@ -84,8 +80,7 @@ export async function updateTherapist(authedId: string, id: string, data: Update
     entityId: id,
   });
 
-  const result = await therapistsRepository.findById(id);
-  return sanitizeTherapist(result);
+  return sanitizeTherapist(updated);
 }
 
 export async function deleteTherapist(authedId: string, id: string) {

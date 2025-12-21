@@ -14,10 +14,9 @@ import {
   listPatientRecords,
   updatePatientRecord,
 } from './service.js';
-import { AppError } from '../../../shared/errors/app-errors.js';
 import { Role } from '@prisma/client';
 import { hasRole } from '../../../middleware/role-guard.js';
-import { logger } from '../../../core/logger.js';
+import { handleError } from '../../../utils/errors.js';
 
 export const patientRecordsRouter = new Hono();
 
@@ -33,11 +32,7 @@ patientRecordsRouter.post(
       const record = await createPatientRecord(authed.sub, data);
       return c.json(record, 201);
     } catch (error) {
-      logger.error(error);
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -52,10 +47,7 @@ patientRecordsRouter.get(
       const records = await listPatientRecords(query);
       return c.json(records, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -66,10 +58,7 @@ patientRecordsRouter.get('/:id', authMiddleware, async (c) => {
     const record = await getPatientRecordById(id);
     return c.json(record, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -79,10 +68,7 @@ patientRecordsRouter.get('/customer/:customerId', authMiddleware, async (c) => {
     const records = await getPatientRecordsByCustomer(customerId);
     return c.json(records, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -99,10 +85,7 @@ patientRecordsRouter.patch(
       const record = await updatePatientRecord(authed.sub, id, data);
       return c.json(record, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -114,9 +97,6 @@ patientRecordsRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async
     await deletePatientRecord(authed.sub, id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });

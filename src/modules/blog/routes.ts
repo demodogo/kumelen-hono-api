@@ -24,7 +24,7 @@ import {
   updateBlogPost,
   updateBlogPostMediaOrder,
 } from './service.js';
-import { AppError } from '../../shared/errors/app-errors.js';
+import { handleError } from '../../utils/errors.js';
 
 export const blogPostRouter = new Hono();
 
@@ -40,10 +40,7 @@ blogPostRouter.post(
       const blogPost = await createBlogPost(authed.sub, data);
       return c.json(blogPost, 201);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -54,10 +51,7 @@ blogPostRouter.get('', authMiddleware, zValidator('query', blogPostListQuerySche
     const blogPosts = await listBlogPosts(query);
     return c.json(blogPosts, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -67,10 +61,7 @@ blogPostRouter.get('/:id', authMiddleware, async (c) => {
     const blogPost = await getBlogPostById(id);
     return c.json(blogPost, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error ' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -80,10 +71,7 @@ blogPostRouter.get('/slug/:slug', authMiddleware, async (c) => {
     const blogPost = await getBlogPostBySlug(slug);
     return c.json(blogPost, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error ' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -100,10 +88,7 @@ blogPostRouter.patch(
       const blogPost = await updateBlogPost(authed.sub, id, data);
       return c.json(blogPost, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -115,10 +100,7 @@ blogPostRouter.delete('/:id', authMiddleware, hasRole([Role.admin, Role.user]), 
     await deleteBlogPost(authed.sub, id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -132,10 +114,7 @@ blogPostRouter.get(
       const items = await getBlogPostMedia(id);
       return c.json(items, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -153,10 +132,7 @@ blogPostRouter.post(
       const item = await attachBlogPostMedia(id, mediaId, orderIndex);
       return c.json(item, 201);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -174,10 +150,7 @@ blogPostRouter.patch(
       const item = await updateBlogPostMediaOrder(id, mediaId, orderIndex);
       return c.json(item, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -194,10 +167,7 @@ blogPostRouter.delete(
       await detachBlogPostMedia(id, mediaId, deleteFromStorage);
       return c.json({ message: 'OK' }, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );

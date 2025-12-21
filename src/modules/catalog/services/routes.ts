@@ -23,8 +23,8 @@ import {
   updateService,
   updateServiceMediaOrder,
 } from './service.js';
-import { AppError } from '../../../shared/errors/app-errors.js';
 import { zValidatorLog } from '../../../middleware/zValidatorLog.js';
+import { handleError } from '../../../utils/errors.js';
 
 export const servicesRouter = new Hono();
 
@@ -41,10 +41,7 @@ servicesRouter.post(
       const service = await createService(authed.sub, data);
       return c.json(service, 201);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -55,10 +52,7 @@ servicesRouter.get('', authMiddleware, zValidator('query', serviceListQuerySchem
     const services = await listServices(query);
     return c.json(services, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -68,10 +62,7 @@ servicesRouter.get('/:id', authMiddleware, async (c) => {
     const service = await getServiceById(id);
     return c.json(service, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error ' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -88,10 +79,7 @@ servicesRouter.patch(
       const service = await updateService(authed.sub, id, data);
       return c.json(service, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -103,10 +91,7 @@ servicesRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c) =
     await deleteService(authed.sub, id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -116,10 +101,7 @@ servicesRouter.get('/:id/media', zValidator('param', serviceIdParamSchema), asyn
     const items = await getServiceMedia(id);
     return c.json(items, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -136,10 +118,7 @@ servicesRouter.post(
       const item = await attachMediaToService(id, mediaId, orderIndex);
       return c.json(item, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -157,10 +136,7 @@ servicesRouter.patch(
       const item = await updateServiceMediaOrder(id, mediaId, orderIndex);
       return c.json(item, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -176,10 +152,7 @@ servicesRouter.delete(
       await detachServiceMedia(id, mediaId);
       return c.json({ message: 'OK' }, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );

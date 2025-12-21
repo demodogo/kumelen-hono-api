@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { changePasswordSchema } from './schemas.js';
 import { changePassword } from './service.js';
 import { authMiddleware } from '../../middleware/auth.js';
-import { AppError } from '../../shared/errors/app-errors.js';
+import { handleError } from '../../utils/errors.js';
 
 export const authRouter = new Hono();
 
@@ -22,10 +22,7 @@ authRouter.patch(
       const result = await changePassword(id, data.password);
       return c.json({ result }, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );

@@ -5,15 +5,31 @@ import type {
 } from './types.js';
 import { appointmentsRepository } from './repository.js';
 import {
+  BadRequestError,
   ConflictError,
   InternalServerError,
   NotFoundError,
-  BadRequestError,
 } from '../../../shared/errors/app-errors.js';
 import { appLogsRepository } from '../../app-logs/repository.js';
-import { EntityType, LogAction } from '@prisma/client';
-import { findAvailableTherapist, sanitizeAppointment } from './helpers.js';
+import { type DayOfWeek, EntityType, LogAction } from '@prisma/client';
 import { customersRepository } from '../../clients/repository.js';
+import {
+  BUSINESS_TIMEZONE,
+  DAY_END_MIN,
+  DAY_START_MIN,
+  buildAppointmentsOverlapDayWhere,
+  clampInterval,
+  filterByDuration,
+  getDayOfWeek,
+  getDayRangeUtcFromLocalDate,
+  mergeIntervals,
+  parseIsoToUtcDate,
+  sanitizeAppointment,
+  subtractIntervals,
+  toHHmm,
+  toMinutes,
+} from './helpers.js';
+import { prisma } from '../../../db/prisma.js';
 
 export async function listAppointments(query: AppointmentListQuery) {
   const { page, pageSize, therapistId, customerId, status, startDate, endDate } = query;
@@ -97,25 +113,42 @@ export async function createAppointment(authedId: string, data: CreateAppointmen
     throw new BadRequestError('Debe proporcionar customerId o customerData');
   }
 
-  const durationMinutes = data.durationMinutes || service.durationMinutes;
-  const appointmentDate = new Date(data.appointmentDate);
+  const startAt = parseIsoToUtcDate(data.startAt);
+  if (Number.isNaN(startAt.getTime())) {
+    throw new BadRequestError('startAt inválido');
+  }
+
+  const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
 
   let therapistId = data.therapistId;
-
   if (!therapistId) {
     therapistId =
-      (await findAvailableTherapist(data.serviceId, appointmentDate, durationMinutes)) ?? undefined;
-
+      (await findAvailableTherapist({ serviceId: data.serviceId, startAt, endAt })) ?? undefined;
     if (!therapistId) {
       throw new ConflictError('No hay terapeutas disponibles para esta fecha y hora');
     }
+  }
+
+  const conflict = await prisma.appointment.findFirst({
+    where: {
+      therapistId,
+      status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+      startAt: { lt: endAt },
+      endAt: { gt: startAt },
+    },
+    select: { id: true },
+  });
+
+  if (conflict) {
+    throw new ConflictError('Horario no disponible');
   }
 
   const appointment = await appointmentsRepository.create({
     ...data,
     customerId,
     therapistId,
-    durationMinutes,
+    startAt: startAt.toISOString(),
+    endAt: endAt.toISOString(),
   });
 
   if (!appointment) {
@@ -142,14 +175,44 @@ export async function updateAppointment(
     throw new NotFoundError('Cita no encontrada');
   }
 
-  if (data.appointmentDate && data.serviceId) {
-    const service = await appointmentsRepository.findByServiceId(data.serviceId);
-    if (!service) {
-      throw new NotFoundError('Servicio no encontrado');
+  const serviceId = data.serviceId ?? existing.serviceId;
+  const service = await appointmentsRepository.findByServiceId(serviceId);
+  if (!service) {
+    throw new NotFoundError('Servicio no encontrado');
+  }
+
+  const therapistId = data.therapistId ?? existing.therapistId ?? undefined;
+  const startAt = data.startAt ? parseIsoToUtcDate(data.startAt) : existing.startAt;
+  if (data.startAt && Number.isNaN(startAt.getTime())) {
+    throw new BadRequestError('startAt inválido');
+  }
+
+  const mustRecomputeEndAt = data.startAt !== undefined || data.serviceId !== undefined;
+  const endAt = mustRecomputeEndAt
+    ? new Date(startAt.getTime() + service.durationMinutes * 60_000)
+    : existing.endAt;
+
+  if (data.startAt && therapistId) {
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        therapistId,
+        id: { not: id },
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        startAt: { lt: endAt },
+        endAt: { gt: startAt },
+      },
+      select: { id: true },
+    });
+
+    if (conflict) {
+      throw new ConflictError('Horario no disponible');
     }
   }
 
-  const appointment = await appointmentsRepository.update(id, data);
+  const appointment = await appointmentsRepository.update(id, {
+    ...data,
+    ...(mustRecomputeEndAt && { endAt: endAt.toISOString() }),
+  });
   if (!appointment) {
     throw new InternalServerError('Error al actualizar la cita');
   }
@@ -180,22 +243,125 @@ export async function deleteAppointment(authedId: string, id: string): Promise<v
   });
 }
 
-export async function checkAvailability(serviceId: string, date: string, durationMinutes?: number) {
+export async function findAvailableTherapist(args: {
+  serviceId: string;
+  startAt: Date;
+  endAt: Date;
+}) {
+  const { serviceId, startAt, endAt } = args;
+  const dayOfWeek: DayOfWeek = getDayOfWeek(startAt);
+
+  const dayStart = new Date(startAt.getFullYear(), startAt.getMonth(), startAt.getDate());
+  const dayEnd = new Date(startAt.getFullYear(), startAt.getMonth(), startAt.getDate() + 1);
+
+  const therapists = await prisma.therapist.findMany({
+    where: {
+      isActive: true,
+      services: { some: { serviceId } },
+    },
+    include: {
+      schedule: { where: { dayOfWeek, isActive: true } },
+      appointments: {
+        where: {
+          startAt: { lt: dayEnd },
+          endAt: { gt: dayStart },
+          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        },
+        select: { startAt: true, endAt: true },
+      },
+    },
+  });
+
+  const startMin = startAt.getHours() * 60 + startAt.getMinutes();
+  const endMin = endAt.getHours() * 60 + endAt.getMinutes();
+
+  for (const t of therapists) {
+    if (t.schedule.length === 0) continue;
+    const sch = t.schedule[0];
+    const schStart = Math.max(toMinutes(sch.startTime), DAY_START_MIN);
+    const schEnd = Math.min(toMinutes(sch.endTime), DAY_END_MIN);
+
+    if (startMin < schStart || endMin > schEnd) continue;
+    const conflict = t.appointments.some((apt) => startAt < apt.endAt && endAt > apt.startAt);
+    if (!conflict) return t.id;
+  }
+  return null;
+}
+
+export async function checkAvailability(
+  serviceId: string,
+  date: string,
+  durationMinutes?: number,
+  therapistId?: string
+) {
   const service = await appointmentsRepository.findByServiceId(serviceId);
   if (!service) {
     throw new NotFoundError('Servicio no encontrado');
   }
 
-  const appointmentDate = new Date(date);
-  const duration = durationMinutes || service.durationMinutes;
+  const serviceDurationMinutes = durationMinutes ?? service.durationMinutes;
+  const { dayStartUtc, dayEndUtc } = getDayRangeUtcFromLocalDate(date);
+  const dayOfWeek = getDayOfWeek(dayStartUtc);
 
-  const availableTherapistId = await findAvailableTherapist(serviceId, appointmentDate, duration);
+  const therapistWhere = therapistId
+    ? { id: therapistId, isActive: true }
+    : {
+        isActive: true,
+        services: { some: { serviceId } },
+      };
+
+  const therapists = await prisma.therapist.findMany({
+    where: therapistWhere,
+    include: {
+      schedule: {
+        where: { dayOfWeek, isActive: true },
+      },
+      appointments: {
+        where: buildAppointmentsOverlapDayWhere({ dayStartUtc, dayEndUtc }),
+        select: { startAt: true, endAt: true },
+      },
+    },
+  });
+
+  const allFree: { startMin: number; endMin: number }[] = [];
+
+  for (const t of therapists) {
+    if (!t.schedule?.length) continue;
+
+    const sch = t.schedule[0];
+    const clamped = clampInterval(
+      { startMin: toMinutes(sch.startTime), endMin: toMinutes(sch.endTime) },
+      DAY_START_MIN,
+      DAY_END_MIN
+    );
+    if (!clamped) continue;
+
+    const working = [clamped];
+
+    const busy = t.appointments
+      .map((a) => {
+        const startLocal = a.startAt;
+        const endLocal = a.endAt;
+        const s = startLocal.getHours() * 60 + startLocal.getMinutes();
+        const e = endLocal.getHours() * 60 + endLocal.getMinutes();
+        return { startMin: s, endMin: e };
+      })
+      .filter((i) => i.endMin > i.startMin);
+
+    const free = filterByDuration(
+      subtractIntervals(working, mergeIntervals(busy)),
+      serviceDurationMinutes
+    );
+    allFree.push(...free);
+  }
+
+  const merged = therapistId ? allFree : mergeIntervals(allFree);
 
   return {
-    available: !!availableTherapistId,
-    therapistId: availableTherapistId,
+    date,
+    timezone: BUSINESS_TIMEZONE,
     serviceId,
-    date: appointmentDate,
-    durationMinutes: duration,
+    serviceDurationMinutes,
+    freeIntervals: merged.map((i) => ({ start: toHHmm(i.startMin), end: toHHmm(i.endMin) })),
   };
 }

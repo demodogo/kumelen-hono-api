@@ -15,6 +15,7 @@ import {
 } from './service.js';
 import { AppError } from '../../../shared/errors/app-errors.js';
 import { logger } from '../../../core/logger.js';
+import { handleError } from '../../../utils/errors.js';
 
 export const therapistsRouter = new Hono();
 
@@ -47,10 +48,7 @@ therapistsRouter.get('', authMiddleware, async (c) => {
     const therapists = await getAllTherapists(includeInactive);
     return c.json(therapists);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -60,10 +58,7 @@ therapistsRouter.get('/by-service/:serviceId', authMiddleware, async (c) => {
     const therapists = await getTherapistsByService(serviceId);
     return c.json(therapists);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -73,10 +68,7 @@ therapistsRouter.get('/:id', authMiddleware, async (c) => {
     const therapist = await getTherapistById(id);
     return c.json(therapist, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -93,11 +85,7 @@ therapistsRouter.patch(
       const therapist = await updateTherapist(authed.sub, id, data);
       return c.json(therapist, 200);
     } catch (error) {
-      console.log(error);
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -109,10 +97,7 @@ therapistsRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c)
     await deleteTherapist(authed.sub, id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -129,10 +114,7 @@ therapistsRouter.post(
       const therapist = await assignServicesToTherapist(authed.sub, id, data);
       return c.json(therapist, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );

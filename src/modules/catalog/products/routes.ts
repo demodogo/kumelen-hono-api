@@ -22,9 +22,9 @@ import {
   updateProduct,
   updateProductMediaOrder,
 } from './service.js';
-import { AppError } from '../../../shared/errors/app-errors.js';
 import { Role } from '@prisma/client';
 import { hasRole } from '../../../middleware/role-guard.js';
+import { handleError } from '../../../utils/errors.js';
 
 export const productsRouter = new Hono();
 
@@ -40,10 +40,7 @@ productsRouter.post(
       const product = await createProduct(authed.sub, data);
       return c.json(product, 201);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -54,10 +51,7 @@ productsRouter.get('', authMiddleware, zValidator('query', productListQuerySchem
     const products = await listProducts(query);
     return c.json(products, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -67,10 +61,7 @@ productsRouter.get('/:id', authMiddleware, async (c) => {
     const product = await getProductById(false, id);
     return c.json(product, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error ' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -80,10 +71,7 @@ productsRouter.get('/slug/:slug', authMiddleware, async (c) => {
     const product = await getProductBySlug(slug);
     return c.json(product, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error ' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -100,10 +88,7 @@ productsRouter.patch(
       const product = await updateProduct(authed.sub, id, data);
       return c.json(product, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -115,10 +100,7 @@ productsRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c) =
     await deleteProduct(authed.sub, id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -132,10 +114,7 @@ productsRouter.get(
       const items = await getProductMedia(id);
       return c.json(items, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -153,10 +132,7 @@ productsRouter.post(
       const item = await attachProductMedia(id, mediaId, orderIndex);
       return c.json(item, 201);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -174,10 +150,7 @@ productsRouter.patch(
       const item = await updateProductMediaOrder(id, mediaId, orderIndex);
       return c.json(item, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -194,11 +167,7 @@ productsRouter.delete(
       await detachProductMedia(id, mediaId, deleteFromStorage);
       return c.json({ message: 'OK' }, 200);
     } catch (error) {
-      console.log(error);
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );

@@ -1,25 +1,32 @@
 import { z } from 'zod';
 import { AppointmentStatus } from '@prisma/client';
+import { DateTime } from 'luxon';
 
-export const createAppointmentSchema = z
-  .object({
-    customerId: z.string().optional(),
-    customerData: z
-      .object({
-        name: z.string().min(1, 'Nombre requerido'),
-        lastName: z.string().optional(),
-        email: z.string().email('Email inválido').optional(),
-        phone: z.string().optional(),
-        rut: z.string().optional(),
-      })
-      .optional(),
-    therapistId: z.string().optional(),
-    serviceId: z.string().min(1, 'Requerido'),
-    appointmentDate: z.string().datetime('Fecha inválida'),
-    durationMinutes: z.number().int().positive().optional(),
-    status: z.nativeEnum(AppointmentStatus).optional(),
-    notes: z.string().optional(),
-  })
+function isIsoDateTimeWithOrWithoutOffset(value: string) {
+  if (DateTime.fromISO(value, { setZone: true }).isValid) return true;
+  return DateTime.fromISO(value).isValid;
+}
+
+const createAppointmentBaseSchema = z.object({
+  customerId: z.string().optional(),
+  customerData: z
+    .object({
+      name: z.string().min(1, 'Nombre requerido'),
+      lastName: z.string().optional(),
+      email: z.string().email('Email inválido').optional(),
+      phone: z.string().optional(),
+      rut: z.string().optional(),
+    })
+    .optional(),
+  therapistId: z.string().optional(),
+  serviceId: z.string().min(1, 'Requerido'),
+  startAt: z.string().refine(isIsoDateTimeWithOrWithoutOffset, 'Fecha inválida'),
+  endAt: z.string().refine(isIsoDateTimeWithOrWithoutOffset, 'Fecha inválida').optional(),
+  status: z.nativeEnum(AppointmentStatus).optional(),
+  notes: z.string().optional(),
+});
+
+export const createAppointmentSchema = createAppointmentBaseSchema
   .refine((data) => data.customerId || data.customerData, {
     message: 'Debe proporcionar customerId o customerData',
     path: ['customerId'],
@@ -37,16 +44,14 @@ export const createAppointmentSchema = z
     }
   );
 
-export const updateAppointmentSchema = z.object({
-  customerId: z.string().optional(),
-  therapistId: z.string().optional(),
-  serviceId: z.string().optional(),
-  appointmentDate: z.string().datetime('Fecha inválida').optional(),
-  durationMinutes: z.number().int().positive().optional(),
-  status: z.nativeEnum(AppointmentStatus).optional(),
-  notes: z.string().optional(),
-  reminderSent: z.boolean().optional(),
-});
+export const updateAppointmentSchema = createAppointmentBaseSchema
+  .partial()
+  .omit({
+    customerData: true,
+  })
+  .extend({
+    reminderSent: z.boolean().optional(),
+  });
 
 export const appointmentIdParamSchema = z.object({
   id: z.string(),
@@ -64,6 +69,7 @@ export const appointmentListQuerySchema = z.object({
 
 export const availabilityQuerySchema = z.object({
   serviceId: z.string().min(1, 'Requerido'),
-  date: z.string().datetime('Fecha inválida'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
+  therapistId: z.string().optional(),
   durationMinutes: z.coerce.number().int().positive().optional(),
 });

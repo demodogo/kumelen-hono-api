@@ -372,8 +372,8 @@ model Appointment {
   customerId      String
   therapistId     String?
   serviceId       String
-  appointmentDate DateTime
-  durationMinutes Int
+  startAt DateTime
+  endAt DateTime
   status          AppointmentStatus @default(PENDING)
   reminderSent    Boolean           @default(false)
   createdAt       DateTime          @default(now())
@@ -384,7 +384,8 @@ model Appointment {
   service        Service        @relation(fields: [serviceId], references: [id])
   sessionNotes   SessionNote[]
 
-  @@index([therapistId, appointmentDate])
+  @@index([startAt])
+  @@index([serviceId, startAt])
   @@index([customerId])
   @@map("appointments")
 }

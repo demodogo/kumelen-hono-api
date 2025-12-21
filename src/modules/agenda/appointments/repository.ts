@@ -1,4 +1,4 @@
-import type { CreateAppointmentInput, UpdateAppointmentInput, FindManyArgs } from './types.js';
+import type { CreateAppointmentInput, FindManyArgs, UpdateAppointmentInput } from './types.js';
 import { prisma } from '../../../db/prisma.js';
 import { buildAppointmentWhere } from './helpers.js';
 
@@ -11,7 +11,7 @@ export const appointmentsRepository = {
       where,
       skip,
       take,
-      orderBy: { appointmentDate: 'desc' },
+      orderBy: { startAt: 'desc' },
       include: {
         customer: {
           select: {
@@ -80,10 +80,11 @@ export const appointmentsRepository = {
   },
 
   async create(
-    data: CreateAppointmentInput & {
+    data: Omit<CreateAppointmentInput, 'startAt' | 'endAt' | 'customerId'> & {
       therapistId?: string;
-      durationMinutes: number;
       customerId: string;
+      startAt: string;
+      endAt: string;
     }
   ) {
     return prisma.appointment.create({
@@ -91,8 +92,8 @@ export const appointmentsRepository = {
         customerId: data.customerId,
         therapistId: data.therapistId || null,
         serviceId: data.serviceId,
-        appointmentDate: new Date(data.appointmentDate),
-        durationMinutes: data.durationMinutes,
+        startAt: new Date(data.startAt),
+        endAt: new Date(data.endAt),
         status: data.status || 'PENDING',
       },
       include: {
@@ -134,10 +135,10 @@ export const appointmentsRepository = {
         ...(data.customerId !== undefined && { customerId: data.customerId }),
         ...(data.therapistId !== undefined && { therapistId: data.therapistId || null }),
         ...(data.serviceId !== undefined && { serviceId: data.serviceId }),
-        ...(data.appointmentDate !== undefined && {
-          appointmentDate: new Date(data.appointmentDate),
+        ...(data.startAt !== undefined && {
+          startAt: new Date(data.startAt),
         }),
-        ...(data.durationMinutes !== undefined && { durationMinutes: data.durationMinutes }),
+        ...(data.endAt !== undefined && { endAt: new Date(data.endAt) }),
         ...(data.status !== undefined && { status: data.status }),
         ...(data.reminderSent !== undefined && { reminderSent: data.reminderSent }),
       },
@@ -184,6 +185,27 @@ export const appointmentsRepository = {
         id: true,
         durationMinutes: true,
       },
+    });
+  },
+
+  findOverlappingRange(args: { startAtLt: Date; endAtGt: Date; therapistId?: string }) {
+    const { startAtLt, endAtGt, therapistId } = args;
+
+    return prisma.appointment.findMany({
+      where: {
+        ...(therapistId ? { therapistId } : {}),
+        startAt: { lt: startAtLt },
+        endAt: { gt: endAtGt },
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+      },
+      select: {
+        id: true,
+        therapistId: true,
+        startAt: true,
+        endAt: true,
+        status: true,
+      },
+      orderBy: { startAt: 'asc' },
     });
   },
 };

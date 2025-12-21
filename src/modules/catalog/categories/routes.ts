@@ -3,9 +3,9 @@ import { authMiddleware } from '../../../middleware/auth.js';
 import { zValidator } from '@hono/zod-validator';
 import { createCategorySchema, getCategoriesQuerySchema, updateCategorySchema } from './schemas.js';
 import { createCategory, deleteCategory, getAll, getById, updateCategory } from './service.js';
-import { AppError } from '../../../shared/errors/app-errors.js';
 import { hasRole } from '../../../middleware/role-guard.js';
 import { Role } from '@prisma/client';
+import { handleError } from '../../../utils/errors.js';
 
 export const categoriesRouter = new Hono();
 
@@ -22,11 +22,7 @@ categoriesRouter.post(
       const category = await createCategory(authed.sub, data);
       return c.json(category, 201);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -45,10 +41,7 @@ categoriesRouter.get(
       const categories = await getAll(false, includeOptions);
       return c.json(categories, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -68,10 +61,7 @@ categoriesRouter.get(
       const category = await getById(id, false, includeOptions);
       return c.json(category, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -89,10 +79,7 @@ categoriesRouter.patch(
       const category = await updateCategory(authed.sub, id, data);
       return c.json(category, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -104,9 +91,6 @@ categoriesRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c)
     await deleteCategory(authed.sub, id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });

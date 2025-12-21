@@ -12,8 +12,8 @@ import {
   getSchedulesByTherapist,
   updateSchedule,
 } from './service.js';
-import { AppError } from '../../../shared/errors/app-errors.js';
 import { logger } from '../../../core/logger.js';
+import { handleError } from '../../../utils/errors.js';
 
 export const schedulesRouter = new Hono();
 
@@ -31,11 +31,7 @@ schedulesRouter.post(
       const schedule = await createSchedule(authed.sub, data);
       return c.json(schedule, 201);
     } catch (error) {
-      logger.error({ error }, 'Error creating schedule');
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -46,10 +42,7 @@ schedulesRouter.get('', authMiddleware, async (c) => {
     const schedules = await getAllSchedules(includeInactive);
     return c.json(schedules);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -60,10 +53,7 @@ schedulesRouter.get('/by-therapist/:therapistId', authMiddleware, async (c) => {
     const schedules = await getSchedulesByTherapist(therapistId, includeInactive);
     return c.json(schedules);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -73,10 +63,7 @@ schedulesRouter.get('/:id', authMiddleware, async (c) => {
     const schedule = await getScheduleById(id);
     return c.json(schedule, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -92,11 +79,7 @@ schedulesRouter.patch(
       const schedules = await updateSchedule(authed.sub, data);
       return c.json(schedules, 200);
     } catch (error) {
-      console.log(error);
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -108,9 +91,6 @@ schedulesRouter.delete('/:id', authMiddleware, hasRole([Role.admin]), async (c) 
     const result = await deleteSchedule(authed.sub, id);
     return c.json(result, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });

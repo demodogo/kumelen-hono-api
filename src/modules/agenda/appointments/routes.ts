@@ -15,9 +15,9 @@ import {
   listAppointments,
   updateAppointment,
 } from './service.js';
-import { AppError } from '../../../shared/errors/app-errors.js';
 import { Role } from '@prisma/client';
 import { hasRole } from '../../../middleware/role-guard.js';
+import { handleError } from '../../../utils/errors.js';
 
 export const appointmentsRouter = new Hono();
 
@@ -33,10 +33,7 @@ appointmentsRouter.post(
       const appointment = await createAppointment(authed.sub, data);
       return c.json(appointment, 201);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -51,10 +48,7 @@ appointmentsRouter.get(
       const appointments = await listAppointments(query);
       return c.json(appointments, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -65,14 +59,11 @@ appointmentsRouter.get(
   zValidator('query', availabilityQuerySchema),
   async (c) => {
     try {
-      const { serviceId, date, durationMinutes } = c.req.valid('query');
-      const availability = await checkAvailability(serviceId, date, durationMinutes);
+      const { serviceId, date, durationMinutes, therapistId } = c.req.valid('query');
+      const availability = await checkAvailability(serviceId, date, durationMinutes, therapistId);
       return c.json(availability, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -83,10 +74,7 @@ appointmentsRouter.get('/:id', authMiddleware, async (c) => {
     const appointment = await getAppointmentById(id);
     return c.json(appointment, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -103,10 +91,7 @@ appointmentsRouter.patch(
       const appointment = await updateAppointment(authed.sub, id, data);
       return c.json(appointment, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -118,9 +103,6 @@ appointmentsRouter.delete('/:id', authMiddleware, hasRole([Role.admin, Role.user
     await deleteAppointment(authed.sub, id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });

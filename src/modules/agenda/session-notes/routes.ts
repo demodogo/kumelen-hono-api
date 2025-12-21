@@ -10,9 +10,9 @@ import {
   getSessionNotesByCustomer,
   updateSessionNote,
 } from './service.js';
-import { AppError } from '../../../shared/errors/app-errors.js';
 import { Role } from '@prisma/client';
 import { hasRole } from '../../../middleware/role-guard.js';
+import { handleError } from '../../../utils/errors.js';
 
 export const sessionNotesRouter = new Hono();
 
@@ -27,10 +27,7 @@ sessionNotesRouter.post(
       const note = await createSessionNote(data);
       return c.json(note, 201);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -41,10 +38,7 @@ sessionNotesRouter.get('/appointment/:appointmentId', authMiddleware, async (c) 
     const notes = await getSessionNotesByAppointment(appointmentId);
     return c.json(notes, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -54,10 +48,7 @@ sessionNotesRouter.get('/customer/:customerId', authMiddleware, async (c) => {
     const notes = await getSessionNotesByCustomer(customerId);
     return c.json(notes, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -67,10 +58,7 @@ sessionNotesRouter.get('/:id', authMiddleware, async (c) => {
     const note = await getSessionNoteById(id);
     return c.json(note, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });
 
@@ -86,10 +74,7 @@ sessionNotesRouter.patch(
       const note = await updateSessionNote(id, data);
       return c.json(note, 200);
     } catch (error) {
-      if (error instanceof AppError) {
-        return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-      }
-      return c.json({ message: 'Internal server error' }, 500);
+      return handleError(error, c);
     }
   }
 );
@@ -100,9 +85,6 @@ sessionNotesRouter.delete('/:id', authMiddleware, hasRole([Role.admin, Role.user
     await deleteSessionNote(id);
     return c.json({ message: 'OK' }, 200);
   } catch (error) {
-    if (error instanceof AppError) {
-      return c.json({ message: error.message, code: error.code }, error.statusCode as any);
-    }
-    return c.json({ message: 'Internal server error' }, 500);
+    return handleError(error, c);
   }
 });

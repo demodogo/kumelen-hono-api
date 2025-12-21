@@ -30,11 +30,13 @@
     "dotenv": "^16.4.7",
     "hono": "^4.10.7",
     "jose": "^6.1.3",
+    "luxon": "^3.7.2",
     "pino": "^9.5.0",
     "pino-pretty": "^11.3.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/luxon": "^3.7.1",
     "@types/node": "^20.11.17",
     "@vitest/coverage-v8": "^4.0.15",
     "@vitest/ui": "^4.0.15",

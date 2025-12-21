@@ -1,14 +1,28 @@
-import { DayOfWeek } from '@prisma/client';
-import { prisma } from '../../../db/prisma.js';
+import { type AppointmentStatus, DayOfWeek, Prisma } from '@prisma/client';
+import { DateTime } from 'luxon';
+
+export const BUSINESS_TIMEZONE = 'America/Santiago';
+export const DAY_START_MIN = 8 * 60 + 30;
+export const DAY_END_MIN = 21 * 60;
 
 export function sanitizeAppointment(appointment: any) {
   if (!appointment) return null;
   return appointment;
 }
 
+export function parseIsoToUtcDate(value: string): Date {
+  const hasZone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(value);
+  if (hasZone) {
+    return new Date(value);
+  }
+
+  const dt = DateTime.fromISO(value, { zone: BUSINESS_TIMEZONE });
+  return dt.toUTC().toJSDate();
+}
+
 export function getDayOfWeek(date: Date): DayOfWeek {
   const dayIndex = date.getDay();
-  const daysMap: Record<number, DayOfWeek> = {
+  const map: Record<number, DayOfWeek> = {
     0: DayOfWeek.SUNDAY,
     1: DayOfWeek.MONDAY,
     2: DayOfWeek.TUESDAY,
@@ -17,129 +31,129 @@ export function getDayOfWeek(date: Date): DayOfWeek {
     5: DayOfWeek.FRIDAY,
     6: DayOfWeek.SATURDAY,
   };
-  return daysMap[dayIndex];
+  return map[dayIndex];
 }
 
-export function parseTimeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
+export function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
 }
 
-export function getTimeFromDate(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
+export function toHHmm(totalMinutes: number): string {
+  const mins = ((totalMinutes % 1440) + 1440) % 1440; // safe
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-export async function findAvailableTherapist(
-  serviceId: string,
-  appointmentDate: Date,
-  durationMinutes: number
-): Promise<string | null> {
-  const dayOfWeek = getDayOfWeek(appointmentDate);
-  const appointmentTime = getTimeFromDate(appointmentDate);
-  const appointmentMinutes = parseTimeToMinutes(appointmentTime);
-  const endMinutes = appointmentMinutes + durationMinutes;
+export function getDayRangeUtcFromLocalDate(dateYYYYMMDD: string): {
+  dayStartUtc: Date;
+  dayEndUtc: Date;
+} {
+  const localStart = DateTime.fromISO(dateYYYYMMDD, { zone: BUSINESS_TIMEZONE }).startOf('day');
+  const localEnd = localStart.plus({ days: 1 });
+  return {
+    dayStartUtc: localStart.toUTC().toJSDate(),
+    dayEndUtc: localEnd.toUTC().toJSDate(),
+  };
+}
 
-  const therapistsWithService = await prisma.therapist.findMany({
-    where: {
-      isActive: true,
-      services: {
-        some: {
-          serviceId: serviceId,
-        },
-      },
-    },
-    include: {
-      schedule: {
-        where: {
-          dayOfWeek: dayOfWeek,
-          isActive: true,
-        },
-      },
-      appointments: {
-        where: {
-          appointmentDate: {
-            gte: new Date(
-              appointmentDate.getFullYear(),
-              appointmentDate.getMonth(),
-              appointmentDate.getDate()
-            ),
-            lt: new Date(
-              appointmentDate.getFullYear(),
-              appointmentDate.getMonth(),
-              appointmentDate.getDate() + 1
-            ),
-          },
-          status: {
-            notIn: ['CANCELLED', 'NO_SHOW'],
-          },
-        },
-      },
-    },
-  });
+export type Interval = { startMin: number; endMin: number };
 
-  for (const therapist of therapistsWithService) {
-    if (therapist.schedule.length === 0) continue;
+export function clampInterval(i: Interval, min: number, max: number): Interval | null {
+  const s = Math.max(i.startMin, min);
+  const e = Math.min(i.endMin, max);
+  if (e <= s) return null;
+  return { startMin: s, endMin: e };
+}
 
-    const schedule = therapist.schedule[0];
-    const scheduleStart = parseTimeToMinutes(schedule.startTime);
-    const scheduleEnd = parseTimeToMinutes(schedule.endTime);
+export function sortIntervals(intervals: Interval[]): Interval[] {
+  return intervals.slice().sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+}
 
-    if (appointmentMinutes < scheduleStart || endMinutes > scheduleEnd) {
-      continue;
-    }
+export function mergeIntervals(intervals: Interval[]): Interval[] {
+  const sorted = sortIntervals(intervals);
+  const out: Interval[] = [];
 
-    const hasConflict = therapist.appointments.some((apt) => {
-      const aptStart = parseTimeToMinutes(getTimeFromDate(apt.appointmentDate));
-      const aptEnd = aptStart + apt.durationMinutes;
-
-      return (
-        (appointmentMinutes >= aptStart && appointmentMinutes < aptEnd) ||
-        (endMinutes > aptStart && endMinutes <= aptEnd) ||
-        (appointmentMinutes <= aptStart && endMinutes >= aptEnd)
-      );
-    });
-
-    if (!hasConflict) {
-      return therapist.id;
+  for (const cur of sorted) {
+    const last = out[out.length - 1];
+    if (!last || cur.startMin > last.endMin) {
+      out.push({ ...cur });
+    } else {
+      last.endMin = Math.max(last.endMin, cur.endMin);
     }
   }
+  return out;
+}
 
-  return null;
+export function subtractIntervals(working: Interval[], busy: Interval[]): Interval[] {
+  const w = mergeIntervals(working);
+  const b = mergeIntervals(busy);
+
+  const out: Interval[] = [];
+  let j = 0;
+
+  for (const wi of w) {
+    let cursor = wi.startMin;
+    while (j < b.length && b[j].endMin <= wi.startMin) j++;
+
+    let k = j;
+    while (k < b.length && b[k].startMin < wi.endMin) {
+      const bi = b[k];
+      if (bi.startMin > cursor) {
+        out.push({ startMin: cursor, endMin: Math.min(bi.startMin, wi.endMin) });
+      }
+      cursor = Math.max(cursor, bi.endMin);
+      if (cursor >= wi.endMin) break;
+      k++;
+    }
+    if (cursor < wi.endMin) {
+      out.push({ startMin: cursor, endMin: wi.endMin });
+    }
+  }
+  return out;
+}
+
+export function filterByDuration(intervals: Interval[], durationMinutes: number): Interval[] {
+  return intervals.filter((i) => i.endMin - i.startMin >= durationMinutes);
+}
+
+export function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
+  return aStart < bEnd && aEnd > bStart;
+}
+
+export function buildAppointmentsOverlapDayWhere(args: {
+  therapistId?: string;
+  dayStartUtc: Date;
+  dayEndUtc: Date;
+}) {
+  const where: Prisma.AppointmentWhereInput = {
+    startAt: { lt: args.dayEndUtc },
+    endAt: { gt: args.dayStartUtc },
+    status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+  };
+  if (args.therapistId) {
+    where.therapistId = args.therapistId;
+  }
+  return where;
 }
 
 export function buildAppointmentWhere(args: {
   therapistId?: string;
   customerId?: string;
-  status?: string;
+  status?: AppointmentStatus;
   startDate?: Date;
   endDate?: Date;
 }) {
   const { therapistId, customerId, status, startDate, endDate } = args;
-  const where: any = {};
-
-  if (therapistId) {
-    where.therapistId = therapistId;
-  }
-
-  if (customerId) {
-    where.customerId = customerId;
-  }
-
-  if (status) {
-    where.status = status;
-  }
-
+  const where: Prisma.AppointmentWhereInput = {};
+  if (therapistId) where.therapistId = therapistId;
+  if (customerId) where.customerId = customerId;
+  if (status) where.status = status;
   if (startDate || endDate) {
-    where.appointmentDate = {};
-    if (startDate) {
-      where.appointmentDate.gte = startDate;
-    }
-    if (endDate) {
-      where.appointmentDate.lte = endDate;
-    }
+    where.startAt = {};
+    if (startDate) where.startAt.gte = startDate;
+    if (endDate) where.startAt.lte = endDate;
   }
-
   return where;
 }

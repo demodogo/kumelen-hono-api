@@ -47,11 +47,12 @@ export const customersRepository = {
           },
         },
         appointments: {
-          orderBy: { appointmentDate: 'desc' },
+          orderBy: { startAt: 'desc' },
           take: 10,
           select: {
             id: true,
-            appointmentDate: true,
+            startAt: true,
+            endAt: true,
             status: true,
             service: {
               select: {

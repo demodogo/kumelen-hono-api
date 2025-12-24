@@ -49,8 +49,7 @@ export async function sendClientAppointmentConfirmation(appointment: Appointment
 
   await sendEmail({
     from: process.env.GMAIL_SMTP_USER!,
-    // TODO: CHANGE TO appointment.customer.email
-    to: 'macaigm@gmail.com',
+    to: appointment.customer.email,
     subject: '¡Has agendado una cita en Kümelen!',
     text,
     html,
@@ -76,8 +75,7 @@ export async function sendKumelenAppointmentConfirmation(appointment: Appointmen
 
   await sendEmail({
     from: process.env.GMAIL_SMTP_USER!,
-    // TODO: CHANGE TO process.env.GMAIL_SMTP_USER
-    to: 'macaigm@gmail.com',
+    to: process.env.GMAIL_SMTP_USER!,
     subject: 'Nueva Cita Reservada',
     text,
     html,
